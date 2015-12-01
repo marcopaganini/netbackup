@@ -5,51 +5,80 @@ package config
 // (C) 2015 by Marco Paganini <paganini AT paganini DOT net>
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/go-ini/ini"
 	"io"
 	"io/ioutil"
+	"reflect"
 )
 
-// Main representation of a configuration file on disk.
+// Config represents a configuration file on disk.  The fields in this struct
+// *must* be tagged so we can correctly map them to the fields in the config
+// file and detect extraneous configuration items.
 type Config struct {
-	Name        string
-	SourceHost  string
-	DestHost    string
-	SourceDir   string
-	DestDir     string
-	ExtraArgs   string
-	PreCommand  string
-	PostCommand string
-	Transport   string
-	ExcludeList []string
-	IncludeList []string
-	Logfile     string
+	Name        string   `ini:"name"`
+	SourceHost  string   `ini:"source_host"`
+	DestHost    string   `ini:"dest_host"`
+	SourceDir   string   `ini:"source_dir"`
+	DestDir     string   `ini:"dest_dir"`
+	ExtraArgs   string   `ini:"extra_args"`
+	PreCommand  string   `ini:"pre_command"`
+	PostCommand string   `ini:"post_command"`
+	Transport   string   `ini:"transport"`
+	ExcludeList []string `ini:"exclude"`
+	IncludeList []string `ini:"include"`
+	Logfile     string   `ini:"logfile"`
 }
 
-// Parse configuration file pointed by io.Reader and perform basic
-// sanity checking. Returns a Config struct or error.
+// ParseConfig reads and parses a ini-style configuration from io.Reader and
+// performs basic sanity checking on it. A pointer to Config is returned or
+// error.
 func ParseConfig(r io.Reader) (*Config, error) {
 	config := &Config{}
 
 	buf, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read configuration file %v", err)
+		return nil, fmt.Errorf("Error reading config: %v", err)
 	}
-	if json.Unmarshal(buf, config) != nil {
-		return nil, fmt.Errorf("Error parsing configuration: %v", err)
+
+	inicfg, err := ini.Load(buf)
+	if err != nil {
+		return nil, fmt.Errorf("Error loading config: %v", err)
+	}
+
+	// For every key in the configuration file, make sure that a corresponding
+	// tag exists in the tags for Config. This guarantees that typos in the
+	// config file will generate an error.
+	ref := reflect.TypeOf(*config)
+
+	for _, inikey := range inicfg.Section("").KeyStrings() {
+		found := false
+		for ix := 0; ix < ref.NumField(); ix++ {
+			skey := ref.Field(ix).Tag.Get("ini")
+			if skey == inikey {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Unknown key %q in config file", inikey)
+		}
+	}
+
+	if err := inicfg.MapTo(config); err != nil {
+		return nil, fmt.Errorf("Error parsing config: %v", err)
 	}
 
 	// Basic sanity checking
 	switch {
 	case config.SourceDir == "":
-		return nil, fmt.Errorf("SourceDir cannot be empty")
+		return nil, fmt.Errorf("source_dir cannot be empty")
 	case config.DestDir == "":
-		return nil, fmt.Errorf("DestDir cannot be empty")
+		return nil, fmt.Errorf("dest_dir cannot be empty")
 	case config.Name == "":
-		return nil, fmt.Errorf("Name cannot be empty")
+		return nil, fmt.Errorf("name cannot be empty")
 	case config.Transport == "":
-		return nil, fmt.Errorf("Transport cannot be empty")
+		return nil, fmt.Errorf("transport cannot be empty")
 	}
 
 	return config, nil
