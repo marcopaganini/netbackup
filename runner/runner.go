@@ -15,13 +15,13 @@ import (
 )
 
 // callback functions for stdout/stderr output
-type callbackFunc func(string) error
+type CallbackFunc func(string) error
 
 // Runner defines a struct to easily run external programs and
 // capture their stdout and stderr.
 type Runner struct {
-	outWrite callbackFunc
-	errWrite callbackFunc
+	outWrite CallbackFunc
+	errWrite CallbackFunc
 }
 
 // New returns a new Runner
@@ -33,12 +33,12 @@ func New() *Runner {
 }
 
 // SetStdout sets the stdout processing function
-func (r *Runner) SetStdout(f callbackFunc) {
+func (r *Runner) SetStdout(f CallbackFunc) {
 	r.outWrite = f
 }
 
 // SetStderr sets the stderr processing function
-func (r *Runner) SetStderr(f callbackFunc) {
+func (r *Runner) SetStderr(f CallbackFunc) {
 	r.errWrite = f
 }
 
@@ -90,7 +90,7 @@ func (r *Runner) Exec(cmd []string) error {
 // stream reads lines from an io.ReadCloser and calls outFunc() with each of
 // the lines as a string. If outFunc() returns an error, control immediately
 // returns to the parent.
-func stream(r io.ReadCloser, outFunc callbackFunc, c chan error) {
+func stream(r io.ReadCloser, outFunc CallbackFunc, c chan error) {
 	s := bufio.NewScanner(r)
 	for s.Scan() {
 		if err := outFunc(s.Text()); err != nil {

@@ -25,16 +25,23 @@ const (
 	defaultLogFileMode = 0660
 )
 
+// CommandRunner defines the interface used to run commands.
+type CommandRunner interface {
+	SetStdout(runner.CallbackFunc)
+	SetStderr(runner.CallbackFunc)
+	Exec([]string) error
+}
+
 // RcloneTransport struct for the rclone transport.
 type RcloneTransport struct {
 	config *config.Config
-	runner *runner.Runner
+	runner CommandRunner
 	log    *logger.Logger
 	dryrun bool
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(config *config.Config, runobj *runner.Runner, verbose int, dryrun bool) (*RcloneTransport, error) {
+func NewRcloneTransport(config *config.Config, runobj CommandRunner, verbose int, dryrun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{
 		config: config,
 		dryrun: dryrun,
