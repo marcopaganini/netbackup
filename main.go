@@ -67,7 +67,7 @@ func main() {
 	}
 
 	if config.Transport == "rclone" {
-		t, err := transports.NewRcloneTransport(config, int(opt.verbose), opt.dryrun)
+		t, err := transports.NewRcloneTransport(config, nil, int(opt.verbose), opt.dryrun)
 		if err != nil {
 			log.Fatalf("Error creating rclone transport: %v", err)
 		}

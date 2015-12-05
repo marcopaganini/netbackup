@@ -28,16 +28,23 @@ const (
 // RcloneTransport struct for the rclone transport.
 type RcloneTransport struct {
 	config *config.Config
+	runner *runner.Runner
 	log    *logger.Logger
 	dryrun bool
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(config *config.Config, verbose int, dryrun bool) (*RcloneTransport, error) {
+func NewRcloneTransport(config *config.Config, runobj *runner.Runner, verbose int, dryrun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{
 		config: config,
 		dryrun: dryrun,
 		log:    logger.New("")}
+
+	// If runner is nil, create a new one
+	t.runner = runobj
+	if t.runner == nil {
+		t.runner = runner.New()
+	}
 
 	// Basic config checking
 	if err := t.checkConfig(); err != nil {
@@ -155,9 +162,9 @@ func (t *RcloneTransport) Run() error {
 		fmt.Fprintf(logWriter, "*** Command: %s ***\n", strings.Join(cmd, " "))
 
 		// Run
-		err = runner.Exec(cmd,
-			func(buf string) error { _, err := fmt.Fprintln(logWriter, buf); return err },
-			func(buf string) error { _, err := fmt.Fprintln(logWriter, buf); return err })
+		t.runner.SetStdout(func(buf string) error { _, err := fmt.Fprintln(logWriter, buf); return err })
+		t.runner.SetStderr(func(buf string) error { _, err := fmt.Fprintln(logWriter, buf); return err })
+		err = t.runner.Exec(cmd)
 		fmt.Fprintf(logWriter, "*** Command returned: %v ***\n", err)
 	}
 	return err

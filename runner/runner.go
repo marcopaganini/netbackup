@@ -17,13 +17,38 @@ import (
 // callback functions for stdout/stderr output
 type callbackFunc func(string) error
 
+// Runner defines a struct to easily run external programs and
+// capture their stdout and stderr.
+type Runner struct {
+	outWrite callbackFunc
+	errWrite callbackFunc
+}
+
+// New returns a new Runner
+func New() *Runner {
+	return &Runner{
+		outWrite: nil,
+		errWrite: nil,
+	}
+}
+
+// SetStdout sets the stdout processing function
+func (r *Runner) SetStdout(f callbackFunc) {
+	r.outWrite = f
+}
+
+// SetStderr sets the stderr processing function
+func (r *Runner) SetStderr(f callbackFunc) {
+	r.errWrite = f
+}
+
 // Exec runs a program specified in the slice cmd. The first element of the
 // slice is used as the executable name, and the rest as the arguments.  The
 // standard output and standard error of the executed program will be sent
 // line-by-line to outWrite() and errWrite() respectively. These (user
 // supplied) functions may decide to write to a file, file-descriptor or ignore
 // each of the lines in the output. Returns the error value from exec.Wait()
-func Exec(cmd []string, outWrite callbackFunc, errWrite callbackFunc) error {
+func (r *Runner) Exec(cmd []string) error {
 	run := exec.Command(cmd[0], cmd[1:]...)
 
 	// Grab stdout & stderr
@@ -45,8 +70,8 @@ func Exec(cmd []string, outWrite callbackFunc, errWrite callbackFunc) error {
 	outchan := make(chan error, 1)
 	errchan := make(chan error, 1)
 
-	go stream(stdout, outWrite, outchan)
-	go stream(stderr, errWrite, errchan)
+	go stream(stdout, r.outWrite, outchan)
+	go stream(stderr, r.errWrite, errchan)
 
 	// Wait until goroutines exhaust stdout and stderr
 	// Capture error from streamig goroutine (if any)
