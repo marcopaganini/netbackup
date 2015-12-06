@@ -1,17 +1,16 @@
-package transports
-
 // rclone transport for netbackup
 //
 // This file is part of netbackup (http://github.com/marcopaganini/netbackup)
 // See instructions in the README.md file that accompanies this program.
 // (C) 2015 by Marco Paganini <paganini AT paganini DOT net>
 
+package transports
+
 import (
 	"fmt"
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/runner"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -37,14 +36,14 @@ type RcloneTransport struct {
 	config *config.Config
 	runner CommandRunner
 	log    *logger.Logger
-	dryrun bool
+	dryRun bool
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(config *config.Config, runobj CommandRunner, verbose int, dryrun bool) (*RcloneTransport, error) {
+func NewRcloneTransport(config *config.Config, runobj CommandRunner, verbose int, dryRun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{
 		config: config,
-		dryrun: dryrun,
+		dryRun: dryRun,
 		log:    logger.New("")}
 
 	// If runner is nil, create a new one
@@ -74,27 +73,10 @@ func (t *RcloneTransport) checkConfig() error {
 	return nil
 }
 
-// writeList writes the desired list of exclusions/inclusions into a file, in a
-// format suitable for this transport. The caller is responsible for deleting
-// the file after use. Returns the name of the file and error.
-func (t *RcloneTransport) writeList(prefix string, patterns []string) (string, error) {
-	var w *os.File
-	var err error
-
-	if w, err = ioutil.TempFile("/tmp", prefix); err != nil {
-		return "", fmt.Errorf("Error creating pattern file for %s list: %v", prefix, err)
-	}
-	defer w.Close()
-	for _, v := range patterns {
-		fmt.Fprintln(w, v)
-	}
-	return w.Name(), nil
-}
-
 // Run forms the command name and executes it, saving the output to the log
 // file requested in the configuration or a default one if none is specified.
 // Temporary files with exclusion and inclusion paths are generated, if needed,
-// and removed at the end of execution. If dryrun is set, just output the
+// and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (t *RcloneTransport) Run() error {
@@ -108,7 +90,7 @@ func (t *RcloneTransport) Run() error {
 
 	// Create exclude/include lists, if needed
 	if len(t.config.ExcludeList) != 0 {
-		if excludeFile, err = t.writeList("exclude", t.config.ExcludeList); err != nil {
+		if excludeFile, err = writeList("exclude", t.config.ExcludeList); err != nil {
 			return err
 		}
 		t.log.Verbosef(3, "Exclude file %s", excludeFile)
@@ -116,7 +98,7 @@ func (t *RcloneTransport) Run() error {
 	}
 
 	if len(t.config.IncludeList) != 0 {
-		if includeFile, err = t.writeList("include", t.config.IncludeList); err != nil {
+		if includeFile, err = writeList("include", t.config.IncludeList); err != nil {
 			return err
 		}
 		t.log.Verbosef(3, "Include file %s", includeFile)
@@ -156,7 +138,7 @@ func (t *RcloneTransport) Run() error {
 	t.log.Verbosef(2, "rclone command = %q", strings.Join(cmd, " "))
 
 	err = nil
-	if !t.dryrun {
+	if !t.dryRun {
 		// Open logfile for append (create if needed).
 		logWriter, logFile, err := createLogFile(defaultLogDir, t.config.Logfile, t.config.Name, defaultLogDirMode, defaultLogFileMode)
 		if err != nil {
