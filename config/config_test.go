@@ -2,10 +2,9 @@
 // See instructions in the README.md file that accompanies this program.
 // (C) 2015 by Marco Paganini <paganini AT paganini DOT net>
 
-package config_test
+package config
 
 import (
-	"github.com/marcopaganini/netbackup/config"
 	"strings"
 	"testing"
 )
@@ -28,7 +27,7 @@ func TestParseConfigMinimal(t *testing.T) {
 	cstr := "name=foo\ntransport=transp\nsource_dir=src\ndest_dir=dst"
 	r := strings.NewReader(cstr)
 
-	cfg, err := config.ParseConfig(r)
+	cfg, err := ParseConfig(r)
 	if err != nil {
 		t.Fatal("ParseConfig failed:", err)
 	}
@@ -51,7 +50,7 @@ func TestParseConfigInvalidKey(t *testing.T) {
 	cstr := "name=foo\ntransport=transp\ninvalidkey=foo"
 	r := strings.NewReader(cstr)
 
-	if _, err := config.ParseConfig(r); err == nil {
+	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded with invalid key; want non-nil error:", err)
 	}
 }
@@ -71,7 +70,7 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 			}
 		}
 		r := strings.NewReader(s)
-		if _, err := config.ParseConfig(r); err == nil {
+		if _, err := ParseConfig(r); err == nil {
 			t.Fatalf("ParseConfig succeeded when key %q is missing; want non-nil error:", miss, err)
 		}
 	}
@@ -82,7 +81,7 @@ func TestParseConfigLists(t *testing.T) {
 	cstr := "name=foo\ntransport=transp\nsource_dir=src\ndest_dir=dst\nexclude=aa bb cc\ninclude=dd ee ff"
 	r := strings.NewReader(cstr)
 
-	cfg, err := config.ParseConfig(r)
+	cfg, err := ParseConfig(r)
 	if err != nil {
 		t.Fatal("ParseConfig failed:", err)
 	}
