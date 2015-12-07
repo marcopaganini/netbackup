@@ -10,6 +10,19 @@ import (
 	"testing"
 )
 
+// compare two arrays. Return true if they're the same, false otherwise.
+func arrayEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for ix := 0; ix < len(a); ix++ {
+		if a[ix] != b[ix] {
+			return false
+		}
+	}
+	return true
+}
+
 // Test minimal configuration.
 func TestParseConfigMinimal(t *testing.T) {
 	cstr := "name=foo\ntransport=transp\nsource_dir=src\ndest_dir=dst"
@@ -61,5 +74,26 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 		if _, err := config.ParseConfig(r); err == nil {
 			t.Fatalf("ParseConfig succeeded when key %q is missing; want non-nil error:", miss, err)
 		}
+	}
+}
+
+// Test that Exclude and Include produce lists of strings.
+func TestParseConfigLists(t *testing.T) {
+	cstr := "name=foo\ntransport=transp\nsource_dir=src\ndest_dir=dst\nexclude=aa bb cc\ninclude=dd ee ff"
+	r := strings.NewReader(cstr)
+
+	cfg, err := config.ParseConfig(r)
+	if err != nil {
+		t.Fatal("ParseConfig failed:", err)
+	}
+
+	expected := []string{"aa", "bb", "cc"}
+	if !arrayEqual(cfg.Exclude, expected) {
+		t.Errorf("Exclude should be %s, is %s", expected, cfg.Name)
+	}
+
+	expected = []string{"dd", "ee", "ff"}
+	if !arrayEqual(cfg.Include, expected) {
+		t.Errorf("Include should be %s, is %s", expected, cfg.Name)
 	}
 }
