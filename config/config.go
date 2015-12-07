@@ -25,8 +25,8 @@ type Config struct {
 	PreCommand  string   `ini:"pre_command"`
 	PostCommand string   `ini:"post_command"`
 	Transport   string   `ini:"transport"`
-	ExcludeList []string `ini:"exclude"`
-	IncludeList []string `ini:"include"`
+	Exclude     []string `ini:"exclude"`
+	Include     []string `ini:"include"`
 	Logfile     string   `ini:"logfile"`
 }
 

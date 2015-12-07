@@ -89,16 +89,16 @@ func (t *RcloneTransport) Run() error {
 	)
 
 	// Create exclude/include lists, if needed
-	if len(t.config.ExcludeList) != 0 {
-		if excludeFile, err = writeList("exclude", t.config.ExcludeList); err != nil {
+	if len(t.config.Exclude) != 0 {
+		if excludeFile, err = writeList("exclude", t.config.Exclude); err != nil {
 			return err
 		}
 		t.log.Verbosef(3, "Exclude file %s", excludeFile)
 		defer os.Remove(excludeFile)
 	}
 
-	if len(t.config.IncludeList) != 0 {
-		if includeFile, err = writeList("include", t.config.IncludeList); err != nil {
+	if len(t.config.Include) != 0 {
+		if includeFile, err = writeList("include", t.config.Include); err != nil {
 			return err
 		}
 		t.log.Verbosef(3, "Include file %s", includeFile)

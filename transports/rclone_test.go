@@ -109,12 +109,12 @@ func TestRemoteSourceRemoteDest(t *testing.T) {
 // Exclude list only
 func TestExcludeListOnly(t *testing.T) {
 	cfg := &config.Config{
-		Name:        "fake",
-		SourceDir:   "/tmp/a",
-		DestDir:     "/tmp/b",
-		ExcludeList: []string{"x/foo", "x/bar"},
-		Transport:   "rclone",
-		Logfile:     "/dev/null",
+		Name:      "fake",
+		SourceDir: "/tmp/a",
+		DestDir:   "/tmp/b",
+		Exclude:   []string{"x/foo", "x/bar"},
+		Transport: "rclone",
+		Logfile:   "/dev/null",
 	}
 	rcloneTest(t, cfg, "rclone sync -v --exclude=[^ ]+ /tmp/a /tmp/b", false, false)
 }
@@ -122,12 +122,12 @@ func TestExcludeListOnly(t *testing.T) {
 // Include list only
 func TestIncludeListOnly(t *testing.T) {
 	cfg := &config.Config{
-		Name:        "fake",
-		SourceDir:   "/tmp/a",
-		DestDir:     "/tmp/b",
-		IncludeList: []string{"x/foo", "x/bar"},
-		Transport:   "rclone",
-		Logfile:     "/dev/null",
+		Name:      "fake",
+		SourceDir: "/tmp/a",
+		DestDir:   "/tmp/b",
+		Include:   []string{"x/foo", "x/bar"},
+		Transport: "rclone",
+		Logfile:   "/dev/null",
 	}
 	rcloneTest(t, cfg, "rclone sync -v --include=[^ ]+ /tmp/a /tmp/b", false, false)
 }
@@ -135,13 +135,13 @@ func TestIncludeListOnly(t *testing.T) {
 // Include & Exclude lists
 func TestIncludeAndExclude(t *testing.T) {
 	cfg := &config.Config{
-		Name:        "fake",
-		SourceDir:   "/tmp/a",
-		DestDir:     "/tmp/b",
-		ExcludeList: []string{"x/foo", "x/bar"},
-		IncludeList: []string{"x/foo", "x/bar"},
-		Transport:   "rclone",
-		Logfile:     "/dev/null",
+		Name:      "fake",
+		SourceDir: "/tmp/a",
+		DestDir:   "/tmp/b",
+		Exclude:   []string{"x/foo", "x/bar"},
+		Include:   []string{"x/foo", "x/bar"},
+		Transport: "rclone",
+		Logfile:   "/dev/null",
 	}
 	rcloneTest(t, cfg, "rclone sync -v --exclude=[^ ]+ --include=[^ ]+ /tmp/a /tmp/b", false, false)
 }
