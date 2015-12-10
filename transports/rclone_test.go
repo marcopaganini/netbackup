@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"testing/iotest"
 )
 
 // Common rclone tests: Initialize an rclone instance with the config passed
@@ -20,7 +21,9 @@ import (
 // will fail.
 func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mustError bool) {
 	fakeRunner := NewFakeRunner()
-	rclone, err := NewRcloneTransport(cfg, fakeRunner, 0, dryRun)
+
+	// Create a new rclone object with our fake runner and a sinking outLogWriter.
+	rclone, err := NewRcloneTransport(cfg, fakeRunner, iotest.TruncateWriter(os.Stderr, 0), 0, dryRun)
 	if err != nil {
 		if mustError {
 			return

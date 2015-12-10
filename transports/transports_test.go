@@ -12,7 +12,8 @@ import (
 // This file contains all the shared infrastructure required for the transports
 // tests. Individual transports tests go in their respective *_test.go files.
 
-// Fake runner implementation
+// FakeRunner is a fake implementation of runner.Runner that saves the executed
+// command for later inspection by the caller.
 type FakeRunner struct {
 	cmd string
 }

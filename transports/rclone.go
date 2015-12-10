@@ -11,6 +11,7 @@ import (
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/runner"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -19,9 +20,6 @@ import (
 const (
 	rcloneCmd = "rclone"
 	// DEBUG
-	defaultLogDir      = "/tmp/log/netbackup"
-	defaultLogDirMode  = 0770
-	defaultLogFileMode = 0660
 )
 
 // CommandRunner defines the interface used to run commands.
@@ -35,15 +33,22 @@ type CommandRunner interface {
 type RcloneTransport struct {
 	config *config.Config
 	runner CommandRunner
+	outLog io.Writer
 	log    *logger.Logger
 	dryRun bool
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(config *config.Config, runobj CommandRunner, verbose int, dryRun bool) (*RcloneTransport, error) {
+func NewRcloneTransport(
+	config *config.Config,
+	runobj CommandRunner,
+	outLog io.Writer,
+	verbose int,
+	dryRun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{
 		config: config,
 		dryRun: dryRun,
+		outLog: outLog,
 		log:    logger.New("")}
 
 	// If runner is nil, create a new one
@@ -139,22 +144,14 @@ func (t *RcloneTransport) Run() error {
 
 	err = nil
 	if !t.dryRun {
-		// Open logfile for append (create if needed).
-		logWriter, logFile, err := createLogFile(defaultLogDir, t.config.Logfile, t.config.Name, defaultLogDirMode, defaultLogFileMode)
-		if err != nil {
-			return err
-		}
-		defer logWriter.Close()
-
-		t.log.Verbosef(2, "Output log file: %q", logFile)
-		fmt.Fprintf(logWriter, "*** Starting netbackup: %s ***\n", time.Now())
-		fmt.Fprintf(logWriter, "*** Command: %s ***\n", strings.Join(cmd, " "))
+		fmt.Fprintf(t.outLog, "*** Starting netbackup: %s ***\n", time.Now())
+		fmt.Fprintf(t.outLog, "*** Command: %s ***\n", strings.Join(cmd, " "))
 
 		// Run
-		t.runner.SetStdout(func(buf string) error { _, err := fmt.Fprintln(logWriter, buf); return err })
-		t.runner.SetStderr(func(buf string) error { _, err := fmt.Fprintln(logWriter, buf); return err })
+		t.runner.SetStdout(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
+		t.runner.SetStderr(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
 		err = t.runner.Exec(cmd)
-		fmt.Fprintf(logWriter, "*** Command returned: %v ***\n", err)
+		fmt.Fprintf(t.outLog, "*** Command returned: %v ***\n", err)
 	}
 	return err
 }

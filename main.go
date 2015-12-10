@@ -11,10 +11,19 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/transports"
+)
+
+const (
+	// DEBUG
+	defaultLogDir      = "/tmp/log/netbackup"
+	defaultLogDirMode  = 0770
+	defaultLogFileMode = 0660
 )
 
 var (
@@ -29,7 +38,8 @@ type Transport interface {
 	SetLogFile(io.Writer) error
 }
 
-// Print error message and program usage to stderr, exit the program.
+// usage prints an error message and program usage to stderr, exiting after
+// that.
 func usage(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n\n", err)
@@ -37,6 +47,28 @@ func usage(err error) {
 	fmt.Fprintf(os.Stderr, "Usage%s:\n", os.Args[0])
 	flag.PrintDefaults()
 	os.Exit(2)
+}
+
+// createOutputLog creates a new output logfile. If logFile is set, it is used
+// unchanged. If not, a new log is created based on the default log directory,
+// the configuration name, and the system date. Intermediate directories are
+// created as needed. Returns a *os.File, the file created, error.
+func createOutputLog(logFile string, configName string) (*os.File, string, error) {
+	path := logFile
+	if path == "" {
+		dir := filepath.Join(defaultLogDir, configName)
+		if err := os.MkdirAll(dir, defaultLogDirMode); err != nil {
+			return nil, "", fmt.Errorf("Error trying to crete dir tree %q: %v", dir, err)
+		}
+		ymd := time.Now().Format("2006-01-02")
+		path = filepath.Join(dir, configName+"-"+ymd+".log")
+	}
+
+	w, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, defaultLogFileMode)
+	if err != nil {
+		return nil, path, fmt.Errorf("Error opening %q: %v", path, err)
+	}
+	return w, path, err
 }
 
 func main() {
@@ -67,7 +99,14 @@ func main() {
 	}
 
 	if config.Transport == "rclone" {
-		t, err := transports.NewRcloneTransport(config, nil, int(opt.verbose), opt.dryrun)
+		outLog, outPath, err := createOutputLog(config.Logfile, config.Name)
+		if err != nil {
+			log.Fatalf("Error opening output logfile: %q: %v", outPath, err)
+		}
+		defer outLog.Close()
+
+		// new rclone instance
+		t, err := transports.NewRcloneTransport(config, nil, outLog, int(opt.verbose), opt.dryrun)
 		if err != nil {
 			log.Fatalf("Error creating rclone transport: %v", err)
 		}
