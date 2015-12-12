@@ -1,15 +1,14 @@
-package main
-
 // netbackup - Consistent multi-method backup tool
 //
 // See instructions in the README.md file that accompanies this program.
 //
-// (C) 2014 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015 by Marco Paganini <paganini AT paganini DOT net>
+
+package main
 
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -30,13 +29,6 @@ var (
 	// Generic logging object
 	log *logger.Logger
 )
-
-// Transport lists the transport agent (rclone/rbackup/rdiff-backup)
-// used to make a particular backup.
-type Transport interface {
-	Run() error
-	SetLogFile(io.Writer) error
-}
 
 // usage prints an error message and program usage to stderr, exiting after
 // that.
@@ -72,7 +64,6 @@ func createOutputLog(logFile string, configName string) (*os.File, string, error
 }
 
 func main() {
-	// Set verbose level
 	log = logger.New("")
 
 	// Parse command line flags and read config file.
