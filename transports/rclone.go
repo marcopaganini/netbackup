@@ -22,30 +22,14 @@ const (
 	// DEBUG
 )
 
-// CommandRunner defines the interface used to run commands.
-type CommandRunner interface {
-	SetStdout(runner.CallbackFunc)
-	SetStderr(runner.CallbackFunc)
-	Exec([]string) error
-}
-
-// RcloneTransport struct for the rclone transport.
-type RcloneTransport struct {
-	config *config.Config
-	runner CommandRunner
-	outLog io.Writer
-	log    *logger.Logger
-	dryRun bool
-}
-
 // NewRcloneTransport creates a new Transport object for rclone.
 func NewRcloneTransport(
 	config *config.Config,
 	runobj CommandRunner,
 	outLog io.Writer,
 	verbose int,
-	dryRun bool) (*RcloneTransport, error) {
-	t := &RcloneTransport{
+	dryRun bool) (*Transport, error) {
+	t := &Transport{
 		config: config,
 		dryRun: dryRun,
 		outLog: outLog,
@@ -68,7 +52,7 @@ func NewRcloneTransport(
 }
 
 // checkConfig performs transport specific checks in the config.
-func (t *RcloneTransport) checkConfig() error {
+func (t *Transport) checkConfig() error {
 	switch {
 	case t.config.SourceDir == "":
 		return fmt.Errorf("Config error: SourceDir is empty")
@@ -84,7 +68,7 @@ func (t *RcloneTransport) checkConfig() error {
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
-func (t *RcloneTransport) Run() error {
+func (t *Transport) Run() error {
 	var (
 		excludeFile string
 		includeFile string
