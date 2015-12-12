@@ -9,6 +9,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -63,7 +64,15 @@ func createOutputLog(logFile string, configName string) (*os.File, string, error
 	return w, path, err
 }
 
+// Transport constructor function definition
+type transportFunc func(*config.Config, transports.CommandRunner, io.Writer, int, bool) (*transports.Transport, error)
+
 func main() {
+	// List of transport names and their constructors
+	TransportList := map[string]transportFunc{
+		"rclone": transports.NewRcloneTransport,
+	}
+
 	log = logger.New("")
 
 	// Parse command line flags and read config file.
@@ -83,28 +92,30 @@ func main() {
 		log.Fatalf("Unable to open config file: %v", err)
 	}
 
-	//config, err := parseConfig(cfg)
 	config, err := config.ParseConfig(cfg)
 	if err != nil {
 		log.Fatalf("Configuration error in %q: %v", opt.config, err)
 	}
 
-	if config.Transport == "rclone" {
-		outLog, outPath, err := createOutputLog(config.Logfile, config.Name)
-		if err != nil {
-			log.Fatalf("Error opening output logfile: %q: %v", outPath, err)
-		}
-		defer outLog.Close()
+	// Make sure the requested transport is valid. Exit with an error if not.
+	tnew, found := TransportList[config.Transport]
+	if !found {
+		log.Fatalf("Unknown transport requested: %q", config.Transport)
+	}
 
-		// new rclone instance
-		t, err := transports.NewRcloneTransport(config, nil, outLog, int(opt.verbose), opt.dryrun)
-		if err != nil {
-			log.Fatalf("Error creating rclone transport: %v", err)
-		}
-		if err := t.Run(); err != nil {
-			log.Fatalln(err)
-		}
-	} else {
-		log.Fatalf("Only rclone supported for now")
+	// Open output log file
+	outLog, outPath, err := createOutputLog(config.Logfile, config.Name)
+	if err != nil {
+		log.Fatalf("Error opening output logfile: %q: %v", outPath, err)
+	}
+	defer outLog.Close()
+
+	// Create a new transport and execute backup.
+	t, err := tnew(config, nil, outLog, int(opt.verbose), opt.dryrun)
+	if err != nil {
+		log.Fatalf("Error creating %s transport: %v", config.Transport, err)
+	}
+	if err := t.Run(); err != nil {
+		log.Fatalln(err)
 	}
 }
