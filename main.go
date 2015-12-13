@@ -16,6 +16,7 @@ import (
 
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
+	"github.com/marcopaganini/netbackup/runner"
 	"github.com/marcopaganini/netbackup/transports"
 )
 
@@ -64,6 +65,43 @@ func createOutputLog(logFile string, configName string) (*os.File, string, error
 	return w, path, err
 }
 
+// shellRun run a command string using the shell using the specified runner.
+func shellRun(runner *runner.Runner, cmd string) error {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	a := []string{shell, "-c", "--", cmd}
+	return runner.Exec(a)
+}
+
+// runCommand executes the pre or post commands using the shell. A prefix will
+// be used to log the commands to the output log (usually, "PRE" for
+// pre-commands or "POST" for post-commands Returns error.
+func runCommand(prefix string, cmd string, runobj *runner.Runner, outLog io.Writer) error {
+	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
+	log.Verboseln(int(opt.verbose), m)
+	if opt.dryrun {
+		return nil
+	}
+
+	// Create a new runner, if current is nil
+	r := runobj
+	if r == nil {
+		r = runner.New()
+	}
+
+	// All streams copied to output log with "PRE:" as a prefix.
+	r.SetStdout(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stdout): %s\n", prefix, buf); return err })
+	r.SetStderr(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stderr): %s\n", prefix, buf); return err })
+
+	fmt.Fprintf(outLog, "*** %s\n", m)
+	err := shellRun(r, cmd)
+	fmt.Fprintf(outLog, "*** %s returned: %v\n", prefix, err)
+
+	return err
+}
+
 // Transport constructor function definition
 type transportFunc func(*config.Config, transports.CommandRunner, io.Writer, int, bool) (*transports.Transport, error)
 
@@ -103,12 +141,19 @@ func main() {
 		log.Fatalf("Unknown transport requested: %q", config.Transport)
 	}
 
-	// Open output log file
+	// Open or create the output log file. This log will contain a transcript
+	// of stdout and stderr from all commands executed by this program.
 	outLog, outPath, err := createOutputLog(config.Logfile, config.Name)
 	if err != nil {
 		log.Fatalf("Error opening output logfile: %q: %v", outPath, err)
 	}
 	defer outLog.Close()
+
+	// Execute pre-commands, if any.
+	if err := runCommand("PRE", config.PreCommand, nil, outLog); err != nil {
+		outLog.Close()
+		log.Fatalf("Error running pre-command: %v", err)
+	}
 
 	// Create a new transport and execute backup.
 	t, err := tnew(config, nil, outLog, int(opt.verbose), opt.dryrun)
@@ -117,5 +162,11 @@ func main() {
 	}
 	if err := t.Run(); err != nil {
 		log.Fatalln(err)
+	}
+
+	// Execute pre-commands, if any.
+	if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
+		outLog.Close()
+		log.Fatalf("Error running post-command: %v", err)
 	}
 }
