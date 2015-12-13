@@ -43,14 +43,14 @@ func usage(err error) {
 	os.Exit(2)
 }
 
-// createOutputLog creates a new output logfile. If logFile is set, it is used
-// unchanged. If not, a new log is created based on the default log directory,
-// the configuration name, and the system date. Intermediate directories are
+// createOutputLog creates a new output log file. If logPath is set, it is used
+// unchanged. If not, a new log is created based under logDir using the
+// configuration name, and the system date. Intermediate directories are
 // created as needed. Returns a *os.File, the file created, error.
-func createOutputLog(logFile string, configName string) (*os.File, string, error) {
-	path := logFile
+func createOutputLog(logPath string, logDir string, configName string) (*os.File, string, error) {
+	path := logPath
 	if path == "" {
-		dir := filepath.Join(defaultLogDir, configName)
+		dir := filepath.Join(logDir, configName)
 		if err := os.MkdirAll(dir, defaultLogDirMode); err != nil {
 			return nil, "", fmt.Errorf("Error trying to crete dir tree %q: %v", dir, err)
 		}
@@ -143,7 +143,7 @@ func main() {
 
 	// Open or create the output log file. This log will contain a transcript
 	// of stdout and stderr from all commands executed by this program.
-	outLog, outPath, err := createOutputLog(config.Logfile, config.Name)
+	outLog, outPath, err := createOutputLog(config.Logfile, defaultLogDir, config.Name)
 	if err != nil {
 		log.Fatalf("Error opening output logfile: %q: %v", outPath, err)
 	}
