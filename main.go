@@ -22,9 +22,11 @@ import (
 
 const (
 	// DEBUG
-	defaultLogDir      = "/tmp/log/netbackup"
-	defaultLogDirMode  = 0770
-	defaultLogFileMode = 0660
+	defaultLogDir = "/tmp/log/netbackup"
+	// Default permissions for log directories and files.
+	// The current umask will apply to these.
+	defaultLogDirMode  = 0777
+	defaultLogFileMode = 0666
 )
 
 var (
@@ -52,7 +54,7 @@ func createOutputLog(logPath string, logDir string, configName string) (*os.File
 	if path == "" {
 		dir := filepath.Join(logDir, configName)
 		if err := os.MkdirAll(dir, defaultLogDirMode); err != nil {
-			return nil, "", fmt.Errorf("Error trying to crete dir tree %q: %v", dir, err)
+			return nil, "", fmt.Errorf("Error trying to create dir tree %q: %v", dir, err)
 		}
 		ymd := time.Now().Format("2006-01-02")
 		path = filepath.Join(dir, configName+"-"+ymd+".log")
