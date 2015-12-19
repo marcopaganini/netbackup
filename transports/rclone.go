@@ -2,6 +2,10 @@
 //
 // This file is part of netbackup (http://github.com/marcopaganini/netbackup)
 // See instructions in the README.md file that accompanies this program.
+// rclone transport for netbackup
+//
+// This file is part of netbackup (http://github.com/marcopaganini/netbackup)
+// See instructions in the README.md file that accompanies this program.
 // (C) 2015 by Marco Paganini <paganini AT paganini DOT net>
 
 package transports
@@ -14,13 +18,15 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
 	rcloneCmd = "rclone"
-	// DEBUG
 )
+
+type RcloneTransport struct {
+	Transport
+}
 
 // NewRcloneTransport creates a new Transport object for rclone.
 func NewRcloneTransport(
@@ -28,12 +34,13 @@ func NewRcloneTransport(
 	runobj CommandRunner,
 	outLog io.Writer,
 	verbose int,
-	dryRun bool) (*Transport, error) {
-	t := &Transport{
-		config: config,
-		dryRun: dryRun,
-		outLog: outLog,
-		log:    logger.New("")}
+	dryRun bool) (*RcloneTransport, error) {
+
+	t := &RcloneTransport{}
+	t.config = config
+	t.dryRun = dryRun
+	t.outLog = outLog
+	t.log = logger.New("")
 
 	// If runner is nil, create a new one
 	t.runner = runobj
@@ -51,91 +58,43 @@ func NewRcloneTransport(
 	return t, nil
 }
 
-// checkConfig performs transport specific checks in the config.
-func (t *Transport) checkConfig() error {
-	switch {
-	case t.config.SourceDir == "":
-		return fmt.Errorf("Config error: SourceDir is empty")
-	case t.config.DestDir == "":
-		return fmt.Errorf("Config error: DestDir is empty")
-	}
-	return nil
-}
-
 // Run forms the command name and executes it, saving the output to the log
 // file requested in the configuration or a default one if none is specified.
 // Temporary files with exclusion and inclusion paths are generated, if needed,
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
-func (t *Transport) Run() error {
-	var (
-		excludeFile string
-		includeFile string
-		src         string
-		dst         string
-		err         error
-	)
-
+func (r *RcloneTransport) Run() error {
 	// Create exclude/include lists, if needed
-	if len(t.config.Exclude) != 0 {
-		if excludeFile, err = writeList("exclude", t.config.Exclude); err != nil {
-			return err
-		}
-		t.log.Verbosef(3, "Exclude file %s", excludeFile)
-		defer os.Remove(excludeFile)
+	err := r.createExcludeFile()
+	if err != nil {
+		return err
 	}
+	defer os.Remove(r.excludeFile)
 
-	if len(t.config.Include) != 0 {
-		if includeFile, err = writeList("include", t.config.Include); err != nil {
-			return err
-		}
-		t.log.Verbosef(3, "Include file %s", includeFile)
-		defer os.Remove(includeFile)
+	err = r.createIncludeFile()
+	if err != nil {
+		return err
 	}
+	defer os.Remove(r.includeFile)
 
-	// Construct the source & destination paths for rclone.
-	// Note that rclone uses the hostname as the "storage" provider.
-	// Storage providers are configured with "rclone config".
-	src = t.config.SourceDir
-	if t.config.SourceHost != "" {
-		src = t.config.SourceHost + ":" + src
-	}
-	dst = t.config.DestDir
-	if t.config.DestHost != "" {
-		dst = t.config.DestHost + ":" + dst
-	}
+	// Build the full rclone command line
+	cmd := []string{rcloneCmd, "sync", "-v"}
 
-	// Construct the command
-	cmd := []string{}
-	cmd = append(cmd, rcloneCmd)
-	cmd = append(cmd, "sync")
-	cmd = append(cmd, "-v")
-
-	if excludeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--exclude=%s", excludeFile))
+	if r.excludeFile != "" {
+		cmd = append(cmd, fmt.Sprintf("--exclude=%s", r.excludeFile))
 	}
-	if includeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--include=%s", includeFile))
+	if r.includeFile != "" {
+		cmd = append(cmd, fmt.Sprintf("--include=%s", r.includeFile))
 	}
-	if t.config.ExtraArgs != "" {
-		cmd = append(cmd, t.config.ExtraArgs)
+	if r.config.ExtraArgs != "" {
+		cmd = append(cmd, r.config.ExtraArgs)
 	}
-	cmd = append(cmd, src)
-	cmd = append(cmd, dst)
+	cmd = append(cmd, r.buildSource())
+	cmd = append(cmd, r.buildDest())
 
-	t.log.Verbosef(2, "rclone command = %q", strings.Join(cmd, " "))
+	r.log.Verbosef(2, "rclone command = %q", strings.Join(cmd, " "))
 
-	err = nil
-	if !t.dryRun {
-		fmt.Fprintf(t.outLog, "*** Starting netbackup: %s ***\n", time.Now())
-		fmt.Fprintf(t.outLog, "*** Command: %s ***\n", strings.Join(cmd, " "))
-
-		// Run
-		t.runner.SetStdout(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
-		t.runner.SetStderr(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
-		err = t.runner.Exec(cmd)
-		fmt.Fprintf(t.outLog, "*** Command returned: %v ***\n", err)
-	}
-	return err
+	// Execute the command
+	return r.runCmd(cmd)
 }

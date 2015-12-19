@@ -104,15 +104,10 @@ func runCommand(prefix string, cmd string, runobj *runner.Runner, outLog io.Writ
 	return err
 }
 
-// Transport constructor function definition
-type transportFunc func(*config.Config, transports.CommandRunner, io.Writer, int, bool) (*transports.Transport, error)
-
 func main() {
-	// List of transport names and their constructors
-	TransportList := map[string]transportFunc{
-		"rclone": transports.NewRcloneTransport,
+	var transp interface {
+		Run() error
 	}
-
 	log = logger.New("")
 
 	// Parse command line flags and read config file.
@@ -137,12 +132,6 @@ func main() {
 		log.Fatalf("Configuration error in %q: %v", opt.config, err)
 	}
 
-	// Make sure the requested transport is valid. Exit with an error if not.
-	tnew, found := TransportList[config.Transport]
-	if !found {
-		log.Fatalf("Unknown transport requested: %q", config.Transport)
-	}
-
 	// Open or create the output log file. This log will contain a transcript
 	// of stdout and stderr from all commands executed by this program.
 	outLog, outPath, err := createOutputLog(config.Logfile, defaultLogDir, config.Name)
@@ -151,22 +140,30 @@ func main() {
 	}
 	defer outLog.Close()
 
+	// Create new transport based on config.Transport
+	switch config.Transport {
+	case "rclone":
+		transp, err = transports.NewRcloneTransport(config, nil, outLog, int(opt.verbose), opt.dryrun)
+	default:
+		log.Fatalf("Unknown transport %q", config.Transport)
+	}
+	if err != nil {
+		outLog.Close()
+		log.Fatalf("Error creating %s transport: %v", config.Transport, err)
+	}
+
 	// Execute pre-commands, if any.
 	if err := runCommand("PRE", config.PreCommand, nil, outLog); err != nil {
 		outLog.Close()
 		log.Fatalf("Error running pre-command: %v", err)
 	}
 
-	// Create a new transport and execute backup.
-	t, err := tnew(config, nil, outLog, int(opt.verbose), opt.dryrun)
-	if err != nil {
-		log.Fatalf("Error creating %s transport: %v", config.Transport, err)
-	}
-	if err := t.Run(); err != nil {
+	// Make it so...
+	if err := transp.Run(); err != nil {
 		log.Fatalln(err)
 	}
 
-	// Execute pre-commands, if any.
+	// Execute post-commands, if any.
 	if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
 		outLog.Close()
 		log.Fatalf("Error running post-command: %v", err)
