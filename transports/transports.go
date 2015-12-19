@@ -1,4 +1,4 @@
-// common.go: Common routines for transports
+// transports.go: Common routines for transports
 //
 // This file is part of netbackup (http://github.com/marcopaganini/netbackup)
 // See instructions in the README.md file that accompanies this program.
