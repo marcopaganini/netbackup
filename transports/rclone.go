@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"github.com/marcopaganini/netbackup/runner"
+	"github.com/marcopaganini/netbackup/execute"
 	"io"
 	"os"
 	"strings"
@@ -24,6 +24,7 @@ const (
 	rcloneCmd = "rclone"
 )
 
+// RcloneTransport is the main structure for the rclone transport.
 type RcloneTransport struct {
 	Transport
 }
@@ -31,7 +32,7 @@ type RcloneTransport struct {
 // NewRcloneTransport creates a new Transport object for rclone.
 func NewRcloneTransport(
 	config *config.Config,
-	runobj CommandRunner,
+	ex Executor,
 	outLog io.Writer,
 	verbose int,
 	dryRun bool) (*RcloneTransport, error) {
@@ -42,10 +43,10 @@ func NewRcloneTransport(
 	t.outLog = outLog
 	t.log = logger.New("")
 
-	// If runner is nil, create a new one
-	t.runner = runobj
-	if t.runner == nil {
-		t.runner = runner.New()
+	// If execute object is nil, create a new one
+	t.execute = ex
+	if t.execute == nil {
+		t.execute = execute.New()
 	}
 
 	// Basic config checking

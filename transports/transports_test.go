@@ -5,34 +5,34 @@
 package transports
 
 import (
-	"github.com/marcopaganini/netbackup/runner"
+	"github.com/marcopaganini/netbackup/execute"
 	"strings"
 )
 
 // This file contains all the shared infrastructure required for the transports
 // tests. Individual transports tests go in their respective *_test.go files.
 
-// FakeRunner is a fake implementation of runner.Runner that saves the executed
+// FakeExecute is a fake implementation of execute.Execute that saves the executed
 // command for later inspection by the caller.
-type FakeRunner struct {
+type FakeExecute struct {
 	cmd string
 }
 
-func NewFakeRunner() *FakeRunner {
-	return &FakeRunner{}
+func NewFakeExecute() *FakeExecute {
+	return &FakeExecute{}
 }
 
-func (f *FakeRunner) SetStdout(runner.CallbackFunc) {
+func (f *FakeExecute) SetStdout(execute.CallbackFunc) {
 }
 
-func (f *FakeRunner) SetStderr(runner.CallbackFunc) {
+func (f *FakeExecute) SetStderr(execute.CallbackFunc) {
 }
 
-func (f *FakeRunner) Cmd() string {
+func (f *FakeExecute) Cmd() string {
 	return f.cmd
 }
 
-func (f *FakeRunner) Exec(a []string) error {
+func (f *FakeExecute) Exec(a []string) error {
 	f.cmd = strings.Join(a, " ")
 	return nil
 }

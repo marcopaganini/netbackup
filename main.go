@@ -16,7 +16,7 @@ import (
 
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"github.com/marcopaganini/netbackup/runner"
+	"github.com/marcopaganini/netbackup/execute"
 	"github.com/marcopaganini/netbackup/transports"
 )
 
@@ -67,38 +67,38 @@ func createOutputLog(logPath string, logDir string, configName string) (*os.File
 	return w, path, err
 }
 
-// shellRun run a command string using the shell using the specified runner.
-func shellRun(runner *runner.Runner, cmd string) error {
+// shellRun run a command string using the shell using the specified execute object.
+func shellRun(e *execute.Execute, cmd string) error {
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/sh"
 	}
 	a := []string{shell, "-c", "--", cmd}
-	return runner.Exec(a)
+	return e.Exec(a)
 }
 
 // runCommand executes the pre or post commands using the shell. A prefix will
 // be used to log the commands to the output log (usually, "PRE" for
 // pre-commands or "POST" for post-commands Returns error.
-func runCommand(prefix string, cmd string, runobj *runner.Runner, outLog io.Writer) error {
+func runCommand(prefix string, cmd string, ex *execute.Execute, outLog io.Writer) error {
 	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
 	log.Verboseln(int(opt.verbose), m)
 	if opt.dryrun {
 		return nil
 	}
 
-	// Create a new runner, if current is nil
-	r := runobj
-	if r == nil {
-		r = runner.New()
+	// Create a new execute object, if current is nil
+	e := ex
+	if e == nil {
+		e = execute.New()
 	}
 
 	// All streams copied to output log with "PRE:" as a prefix.
-	r.SetStdout(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stdout): %s\n", prefix, buf); return err })
-	r.SetStderr(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stderr): %s\n", prefix, buf); return err })
+	e.SetStdout(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stdout): %s\n", prefix, buf); return err })
+	e.SetStderr(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stderr): %s\n", prefix, buf); return err })
 
 	fmt.Fprintf(outLog, "*** %s\n", m)
-	err := shellRun(r, cmd)
+	err := shellRun(e, cmd)
 	fmt.Fprintf(outLog, "*** %s returned: %v\n", prefix, err)
 
 	return err

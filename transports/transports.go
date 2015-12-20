@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"github.com/marcopaganini/netbackup/runner"
+	"github.com/marcopaganini/netbackup/execute"
 	"io"
 	"io/ioutil"
 	"os"
@@ -18,17 +18,17 @@ import (
 	"time"
 )
 
-// CommandRunner defines the interface used to run commands.
-type CommandRunner interface {
-	SetStdout(runner.CallbackFunc)
-	SetStderr(runner.CallbackFunc)
+// Executor defines the interface used to run commands.
+type Executor interface {
+	SetStdout(execute.CallbackFunc)
+	SetStderr(execute.CallbackFunc)
 	Exec([]string) error
 }
 
 // Transport represents all transports
 type Transport struct {
 	config      *config.Config
-	runner      CommandRunner
+	execute     Executor
 	outLog      io.Writer
 	log         *logger.Logger
 	dryRun      bool
@@ -140,9 +140,9 @@ func (t *Transport) runCmd(cmd []string) error {
 		fmt.Fprintf(t.outLog, "*** Command: %s ***\n", strings.Join(cmd, " "))
 
 		// Run
-		t.runner.SetStdout(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
-		t.runner.SetStderr(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
-		err = t.runner.Exec(cmd)
+		t.execute.SetStdout(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
+		t.execute.SetStderr(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
+		err = t.execute.Exec(cmd)
 		fmt.Fprintf(t.outLog, "*** Command returned: %v ***\n", err)
 	}
 	return err

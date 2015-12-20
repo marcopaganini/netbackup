@@ -20,10 +20,10 @@ import (
 // must_error is true, the call to NewRcloneTransport *must* fail, or the test
 // will fail.
 func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mustError bool) {
-	fakeRunner := NewFakeRunner()
+	fakeExecute := NewFakeExecute()
 
-	// Create a new rclone object with our fake runner and a sinking outLogWriter.
-	rclone, err := NewRcloneTransport(cfg, fakeRunner, iotest.TruncateWriter(os.Stderr, 0), 0, dryRun)
+	// Create a new rclone object with our fakeExecute and a sinking outLogWriter.
+	rclone, err := NewRcloneTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), 0, dryRun)
 	if err != nil {
 		if mustError {
 			return
@@ -36,12 +36,12 @@ func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mu
 	if err := rclone.Run(); err != nil {
 		t.Fatalf("rclone.Run failed: %v", err)
 	}
-	matched, err := regexp.MatchString(expect, fakeRunner.Cmd())
+	matched, err := regexp.MatchString(expect, fakeExecute.Cmd())
 	if err != nil {
 		t.Fatalf("error during regexp match: %v", err)
 	}
 	if !matched {
-		t.Fatalf("name should match %s; is %s", expect, fakeRunner.Cmd())
+		t.Fatalf("name should match %s; is %s", expect, fakeExecute.Cmd())
 	}
 }
 
