@@ -162,10 +162,12 @@ func main() {
 	if err := transp.Run(); err != nil {
 		log.Fatalln(err)
 	}
+	fmt.Fprintf(outLog, "** Backup: Success\n")
 
 	// Execute post-commands, if any.
 	if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
 		outLog.Close()
+		fmt.Fprintf(outLog, "** Backup: Failed (%v)\n", err)
 		log.Fatalf("Error running post-command: %v", err)
 	}
 }
