@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -53,6 +54,16 @@ func writeList(prefix string, patterns []string) (string, error) {
 	return w.Name(), nil
 }
 
+// absPaths returns a slice of absolute paths formed by prefixing all paths in
+// the slice of paths with the base path.
+func absPaths(base string, paths []string) []string {
+	p := make([]string, len(paths))
+	for ix, v := range paths {
+		p[ix] = filepath.Join(base, v)
+	}
+	return p
+}
+
 // checkConfig performs basic checks in the configuration.
 func (t *Transport) checkConfig() error {
 	switch {
@@ -65,37 +76,32 @@ func (t *Transport) checkConfig() error {
 }
 
 // createExcludeFile creates a file with the list of patterns to be excluded.
-// The file is only created if config.Include is set.
-func (t *Transport) createExcludeFile() error {
-	var (
-		fname string
-		err   error
-	)
-
-	if len(t.config.Exclude) != 0 {
-		if fname, err = writeList("exclude", t.config.Exclude); err != nil {
-			return err
-		}
-		t.log.Verbosef(3, "Exclude file: %q", fname)
-		t.excludeFile = fname
+// The file is only created if config.Exclude is set.
+func (t *Transport) createExcludeFile(paths []string) error {
+	if len(t.config.Exclude) == 0 {
+		return nil
 	}
+	fname, err := writeList("exclude", paths)
+	if err != nil {
+		return err
+	}
+	t.log.Verbosef(3, "Exclude file: %q", fname)
+	t.excludeFile = fname
 	return nil
 }
 
-// createIncludeFile creates a file with the list of patterns to be included,
+// createIncludeFile creates a file with the list of patterns to be included.
 // The file is only created if config.Include is set.
-func (t *Transport) createIncludeFile() error {
-	var (
-		fname string
-		err   error
-	)
-	if len(t.config.Include) != 0 {
-		if fname, err = writeList("include", t.config.Include); err != nil {
-			return err
-		}
-		t.log.Verbosef(3, "Include file: %q", fname)
-		t.includeFile = fname
+func (t *Transport) createIncludeFile(paths []string) error {
+	if len(t.config.Include) == 0 {
+		return nil
 	}
+	fname, err := writeList("include", paths)
+	if err != nil {
+		return err
+	}
+	t.log.Verbosef(3, "Include file: %q", fname)
+	t.includeFile = fname
 	return nil
 }
 

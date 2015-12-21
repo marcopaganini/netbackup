@@ -3,10 +3,6 @@
 // This file is part of netbackup (http://github.com/marcopaganini/netbackup)
 // See instructions in the README.md file that accompanies this program.
 // rclone transport for netbackup
-//
-// This file is part of netbackup (http://github.com/marcopaganini/netbackup)
-// See instructions in the README.md file that accompanies this program.
-// (C) 2015 by Marco Paganini <paganini AT paganini DOT net>
 
 package transports
 
@@ -67,13 +63,13 @@ func NewRcloneTransport(
 // to stderr.
 func (r *RcloneTransport) Run() error {
 	// Create exclude/include lists, if needed
-	err := r.createExcludeFile()
+	err := r.createExcludeFile(r.config.Exclude)
 	if err != nil {
 		return err
 	}
 	defer os.Remove(r.excludeFile)
 
-	err = r.createIncludeFile()
+	err = r.createIncludeFile(r.config.Include)
 	if err != nil {
 		return err
 	}
