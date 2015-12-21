@@ -144,6 +144,8 @@ func main() {
 	switch config.Transport {
 	case "rclone":
 		transp, err = transports.NewRcloneTransport(config, nil, outLog, int(opt.verbose), opt.dryrun)
+	case "rdiff-backup":
+		transp, err = transports.NewRdiffBackupTransport(config, nil, outLog, int(opt.verbose), opt.dryrun)
 	default:
 		log.Fatalf("Unknown transport %q", config.Transport)
 	}
