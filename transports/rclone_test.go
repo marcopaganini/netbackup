@@ -44,7 +44,7 @@ func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mu
 }
 
 // Dry run: No command should be executed
-func TestDryRun(t *testing.T) {
+func TestRcloneDryRun(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
@@ -56,7 +56,7 @@ func TestDryRun(t *testing.T) {
 }
 
 // Same machine (local copy)
-func TestSameMachine(t *testing.T) {
+func TestRcloneSameMachine(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
@@ -68,7 +68,7 @@ func TestSameMachine(t *testing.T) {
 }
 
 // Local source, remote destination
-func TestLocalSourceRemoteDest(t *testing.T) {
+func TestRcloneLocalSourceRemoteDest(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
@@ -81,7 +81,7 @@ func TestLocalSourceRemoteDest(t *testing.T) {
 }
 
 // Remote source, local destination (unusual)
-func TestRemoteSourceLocalDest(t *testing.T) {
+func TestRcloneRemoteSourceLocalDest(t *testing.T) {
 	cfg := &config.Config{
 		Name:       "fake",
 		SourceHost: "srchost",
@@ -94,7 +94,7 @@ func TestRemoteSourceLocalDest(t *testing.T) {
 }
 
 // Remote source, Remote destination (server side copy)
-func TestRemoteSourceRemoteDest(t *testing.T) {
+func TestRcloneRemoteSourceRemoteDest(t *testing.T) {
 	cfg := &config.Config{
 		Name:       "fake",
 		SourceHost: "srchost",
@@ -108,7 +108,7 @@ func TestRemoteSourceRemoteDest(t *testing.T) {
 }
 
 // Exclude list only
-func TestExcludeListOnly(t *testing.T) {
+func TestRcloneExcludeListOnly(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
@@ -121,7 +121,7 @@ func TestExcludeListOnly(t *testing.T) {
 }
 
 // Include list only
-func TestIncludeListOnly(t *testing.T) {
+func TestRcloneIncludeListOnly(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
@@ -134,7 +134,7 @@ func TestIncludeListOnly(t *testing.T) {
 }
 
 // Include & Exclude lists
-func TestIncludeAndExclude(t *testing.T) {
+func TestRcloneIncludeAndExclude(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
@@ -148,7 +148,7 @@ func TestIncludeAndExclude(t *testing.T) {
 }
 
 // Test that an empty source dir results in an error
-func TestEmptySourceDir(t *testing.T) {
+func TestRcloneEmptySourceDir(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		DestDir:   "/tmp/b",
@@ -159,7 +159,7 @@ func TestEmptySourceDir(t *testing.T) {
 }
 
 // Test that an empty destination dir results in an error
-func TestEmptyDestDir(t *testing.T) {
+func TestRcloneEmptyDestDir(t *testing.T) {
 	cfg := &config.Config{
 		Name:      "fake",
 		SourceDir: "/tmp/a",
