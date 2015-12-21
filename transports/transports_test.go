@@ -6,7 +6,10 @@ package transports
 
 import (
 	"github.com/marcopaganini/netbackup/execute"
+	"io/ioutil"
+	"os"
 	"strings"
+	"testing"
 )
 
 // This file contains all the shared infrastructure required for the transports
@@ -35,4 +38,22 @@ func (f *FakeExecute) Cmd() string {
 func (f *FakeExecute) Exec(a []string) error {
 	f.cmd = strings.Join(a, " ")
 	return nil
+}
+
+// Test writeList
+func TestWriteList(t *testing.T) {
+	items := []string{"aa", "aa/01", "aa/02", "bb"}
+	fname, err := writeList("fakename", items)
+	if err != nil {
+		t.Fatalf("writeList failed: %v", err)
+	}
+	contents, err := ioutil.ReadFile(fname)
+	os.Remove(fname)
+	if err != nil {
+		t.Fatalf("Unable to read list file %q: %v", fname, err)
+	}
+	expected := strings.Join(items, "\n") + "\n"
+	if string(contents) != expected {
+		t.Fatalf("generated list file contents should match\n[%s]\n\nbut is\n\n[%s]", expected, string(contents))
+	}
 }
