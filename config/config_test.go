@@ -24,7 +24,7 @@ func arrayEqual(a []string, b []string) bool {
 
 // Test minimal configuration.
 func TestParseConfigMinimal(t *testing.T) {
-	cstr := "name=foo\ntransport=transp\nsource_dir=src\ndest_dir=dst"
+	cstr := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst"
 	r := strings.NewReader(cstr)
 
 	cfg, err := ParseConfig(r)
@@ -37,11 +37,11 @@ func TestParseConfigMinimal(t *testing.T) {
 	if cfg.Transport != "transp" {
 		t.Errorf("name should be transp; is %s", cfg.Name)
 	}
-	if cfg.SourceDir != "src" {
-		t.Errorf("source_dir should be src; is %s", cfg.SourceDir)
+	if cfg.SourceDir != "/src" {
+		t.Errorf("source_dir should be /src; is %s", cfg.SourceDir)
 	}
-	if cfg.DestDir != "dst" {
-		t.Errorf("dest_dir should be dst; is %s", cfg.DestDir)
+	if cfg.DestDir != "/dst" {
+		t.Errorf("dest_dir should be /dst; is %s", cfg.DestDir)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestParseConfigInvalidKey(t *testing.T) {
 	r := strings.NewReader(cstr)
 
 	if _, err := ParseConfig(r); err == nil {
-		t.Fatalf("ParseConfig succeeded with invalid key; want non-nil error:", err)
+		t.Fatalf("ParseConfig succeeded with invalid key; want non-nil error: %v", err)
 	}
 }
 
@@ -76,9 +76,26 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 	}
 }
 
+// Test that relative paths for source or destination dir result in error.
+func TestRelativePaths(t *testing.T) {
+	// Relative source_dir
+	cstr := "name=foo\nsource_dir=a\ndest_dir=/btransport=transp\ninvalidkey=foo"
+	r := strings.NewReader(cstr)
+	if _, err := ParseConfig(r); err == nil {
+		t.Fatalf("ParseConfig succeeded when source_dir is a relative path; want non-nil error: %v", err)
+	}
+
+	// Relative dest_dir
+	cstr = "name=foo\nsource_dir=/a\ndest_dir=btransport=transp\ninvalidkey=foo"
+	r = strings.NewReader(cstr)
+	if _, err := ParseConfig(r); err == nil {
+		t.Fatalf("ParseConfig succeeded when dest_dir is a relative path; want non-nil error: %v", err)
+	}
+}
+
 // Test that Exclude and Include produce lists of strings.
 func TestParseConfigLists(t *testing.T) {
-	cstr := "name=foo\ntransport=transp\nsource_dir=src\ndest_dir=dst\nexclude=aa bb cc\ninclude=dd ee ff"
+	cstr := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst\nexclude=aa bb cc\ninclude=dd ee ff"
 	r := strings.NewReader(cstr)
 
 	cfg, err := ParseConfig(r)

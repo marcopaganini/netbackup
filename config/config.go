@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"reflect"
+	"strings"
 )
 
 // Config represents a configuration file on disk.  The fields in this struct
@@ -79,6 +80,10 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("name cannot be empty")
 	case config.Transport == "":
 		return nil, fmt.Errorf("transport cannot be empty")
+	case !strings.HasPrefix(config.SourceDir, "/"):
+		return nil, fmt.Errorf("source_dir must be an absolute path")
+	case !strings.HasPrefix(config.DestDir, "/"):
+		return nil, fmt.Errorf("dest_dir must be an absolute path")
 	}
 
 	return config, nil
