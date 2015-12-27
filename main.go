@@ -23,10 +23,15 @@ import (
 const (
 	// DEBUG
 	defaultLogDir = "/tmp/log/netbackup"
+
 	// Default permissions for log directories and files.
 	// The current umask will apply to these.
 	defaultLogDirMode  = 0777
 	defaultLogFileMode = 0666
+
+	// Return codes
+	osSuccess = 0
+	osError   = 1
 )
 
 var (
@@ -104,7 +109,7 @@ func runCommand(prefix string, cmd string, ex *execute.Execute, outLog io.Writer
 	return err
 }
 
-func main() {
+func backup() int {
 	var transp interface {
 		Run() error
 	}
@@ -112,7 +117,8 @@ func main() {
 
 	// Parse command line flags and read config file.
 	if err := parseFlags(); err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Printf("Error: %v", err)
+		return osError
 	}
 	// Set verbose level
 	if opt.verbose > 0 {
@@ -122,21 +128,24 @@ func main() {
 		log.Verbosef(2, "Warning: Dry-Run mode. Won't execute any commands.")
 	}
 
+	// Open and parse config file
 	cfg, err := os.Open(opt.config)
 	if err != nil {
-		log.Fatalf("Unable to open config file: %v", err)
+		log.Printf("Unable to open config file: %v", err)
+		return osError
 	}
-
 	config, err := config.ParseConfig(cfg)
 	if err != nil {
-		log.Fatalf("Configuration error in %q: %v", opt.config, err)
+		log.Printf("Configuration error in %q: %v", opt.config, err)
+		return osError
 	}
 
 	// Open or create the output log file. This log will contain a transcript
 	// of stdout and stderr from all commands executed by this program.
 	outLog, outPath, err := createOutputLog(config.Logfile, defaultLogDir, config.Name)
 	if err != nil {
-		log.Fatalf("Error opening output logfile: %q: %v", outPath, err)
+		log.Printf("Error opening output logfile: %q: %v", outPath, err)
+		return osError
 	}
 	defer outLog.Close()
 
@@ -149,17 +158,19 @@ func main() {
 	case "rsync":
 		transp, err = transports.NewRsyncTransport(config, nil, outLog, int(opt.verbose), opt.dryrun)
 	default:
-		log.Fatalf("Unknown transport %q", config.Transport)
+		log.Printf("Unknown transport %q", config.Transport)
+		return osError
 	}
 	if err != nil {
-		outLog.Close()
-		log.Fatalf("Error creating %s transport: %v", config.Transport, err)
+		log.Printf("Error creating %s transport: %v", config.Transport, err)
+		return osError
 	}
 
 	// Execute pre-commands, if any.
 	if err := runCommand("PRE", config.PreCommand, nil, outLog); err != nil {
 		outLog.Close()
-		log.Fatalf("Error running pre-command: %v", err)
+		log.Printf("Error running pre-command: %v", err)
+		return osError
 	}
 
 	// Make it so...
@@ -170,8 +181,14 @@ func main() {
 
 	// Execute post-commands, if any.
 	if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
-		outLog.Close()
 		fmt.Fprintf(outLog, "** Backup: Failed (%v)\n", err)
-		log.Fatalf("Error running post-command: %v", err)
+		log.Printf("Error running post-command: %v", err)
+		return osError
 	}
+
+	return osSuccess
+}
+
+func main() {
+	os.Exit(backup())
 }
