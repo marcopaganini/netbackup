@@ -20,6 +20,7 @@ type Config struct {
 	Name        string   `ini:"name"`
 	SourceHost  string   `ini:"source_host"`
 	DestHost    string   `ini:"dest_host"`
+	DestDev     string   `ini:"dest_dev"`
 	SourceDir   string   `ini:"source_dir"`
 	DestDir     string   `ini:"dest_dir"`
 	ExtraArgs   string   `ini:"extra_args"`
@@ -74,8 +75,10 @@ func ParseConfig(r io.Reader) (*Config, error) {
 	switch {
 	case config.SourceDir == "":
 		return nil, fmt.Errorf("source_dir cannot be empty")
-	case config.DestDir == "":
-		return nil, fmt.Errorf("dest_dir cannot be empty")
+	case (config.DestDir == "" && config.DestDev == "") || (config.DestDir != "" && config.DestDev != ""):
+		return nil, fmt.Errorf("either dest_dir OR dest_dev MUST be set")
+	case config.DestDev != "" && config.DestHost == "":
+		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported.")
 	case config.Name == "":
 		return nil, fmt.Errorf("name cannot be empty")
 	case config.Transport == "":
