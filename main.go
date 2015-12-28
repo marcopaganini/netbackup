@@ -135,7 +135,7 @@ func mountDestDev(config *config.Config, outLog io.Writer) error {
 
 // umountDestDev dismounts the destination device specified in config.DestDev.
 func umountDestDev(config *config.Config, outLog io.Writer) error {
-	cmd := umountCmd + " " + config.DestDev + " " + config.DestDir
+	cmd := umountCmd + " " + config.DestDev
 	if err := runCommand("UMOUNT", cmd, nil, outLog); err != nil {
 		return fmt.Errorf("error running %q: %v", cmd, err)
 	}
@@ -188,7 +188,13 @@ func backup() int {
 			log.Printf("Error opening destination device %q: %v", config.DestDev, err)
 			return osError
 		}
+		// umount destination filesystem and remove temp mount point.
+		defer os.Remove(config.DestDir)
 		defer umountDestDev(config, outLog)
+		// For some reason, not having a pause before attempting to unmount
+		// can generate a race condition where umount complains that the fs
+		// is busy (even though the transport is already down.)
+		defer time.Sleep(2 * time.Second)
 	}
 
 	// Create new transport based on config.Transport
@@ -210,20 +216,20 @@ func backup() int {
 
 	// Execute pre-commands, if any.
 	if err := runCommand("PRE", config.PreCommand, nil, outLog); err != nil {
-		outLog.Close()
 		log.Printf("Error running pre-command: %v", err)
 		return osError
 	}
 
 	// Make it so...
 	if err := transp.Run(); err != nil {
-		log.Fatalln(err)
+		log.Printf("Error running backup: %v", err)
+		return osError
 	}
-	fmt.Fprintf(outLog, "** Backup: Success\n")
+	fmt.Fprintf(outLog, "*** Backup Result: Success\n")
 
 	// Execute post-commands, if any.
 	if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
-		fmt.Fprintf(outLog, "** Backup: Failed (%v)\n", err)
+		fmt.Fprintf(outLog, "*** Backup Result: Failure (%v)\n", err)
 		log.Printf("Error running post-command: %v", err)
 		return osError
 	}
