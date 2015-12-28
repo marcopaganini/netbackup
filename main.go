@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -32,6 +33,10 @@ const (
 	// Return codes
 	osSuccess = 0
 	osError   = 1
+
+	// External commands.
+	mountCmd  = "mount"
+	umountCmd = "umount"
 )
 
 var (
@@ -109,6 +114,34 @@ func runCommand(prefix string, cmd string, ex *execute.Execute, outLog io.Writer
 	return err
 }
 
+// mountDestDev mounts the destination device specified in config.DestDev into
+// a temporary mount point and set config.DestDir to point to this directory.
+func mountDestDev(config *config.Config, outLog io.Writer) error {
+	tmpdir, err := ioutil.TempDir("", "netbackup_mount")
+	if err != nil {
+		return fmt.Errorf("unable to create temp directory: %v", err)
+	}
+
+	// We use the mount command instead of the mount syscal as it makes
+	// simpler to specify defaults in /etc/fstab.
+	cmd := mountCmd + " " + config.DestDev + " " + tmpdir
+	if err := runCommand("MOUNT", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+
+	config.DestDir = tmpdir
+	return nil
+}
+
+// umountDestDev dismounts the destination device specified in config.DestDev.
+func umountDestDev(config *config.Config, outLog io.Writer) error {
+	cmd := umountCmd + " " + config.DestDev + " " + config.DestDir
+	if err := runCommand("UMOUNT", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+	return nil
+}
+
 func backup() int {
 	var transp interface {
 		Run() error
@@ -148,6 +181,15 @@ func backup() int {
 		return osError
 	}
 	defer outLog.Close()
+
+	// Mount destination device, if needed.
+	if config.DestDev != "" && !opt.dryrun {
+		if err := mountDestDev(config, outLog); err != nil {
+			log.Printf("Error opening destination device %q: %v", config.DestDev, err)
+			return osError
+		}
+		defer umountDestDev(config, outLog)
+	}
 
 	// Create new transport based on config.Transport
 	switch config.Transport {
