@@ -79,7 +79,7 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 // Make sure that improper combinations of destination dir, device and host
 // generate an error.
 func TestDestOptions(t *testing.T) {
-	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src"
+	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\n"
 
 	// dest_dir and dest_dev should result in error.
 	r := strings.NewReader(baseConfig + "dest_dir=/dst\ndest_dev=/dev/foo")

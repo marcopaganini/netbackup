@@ -77,7 +77,7 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("source_dir cannot be empty")
 	case (config.DestDir == "" && config.DestDev == "") || (config.DestDir != "" && config.DestDev != ""):
 		return nil, fmt.Errorf("either dest_dir OR dest_dev MUST be set")
-	case config.DestDev != "" && config.DestHost == "":
+	case config.DestDev != "" && config.DestHost != "":
 		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported.")
 	case config.Name == "":
 		return nil, fmt.Errorf("name cannot be empty")
@@ -85,7 +85,7 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("transport cannot be empty")
 	case !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")
-	case !strings.HasPrefix(config.DestDir, "/"):
+	case config.DestDir != "" && !strings.HasPrefix(config.DestDir, "/"):
 		return nil, fmt.Errorf("dest_dir must be an absolute path")
 	}
 
