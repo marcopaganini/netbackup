@@ -40,6 +40,7 @@ const (
 	cryptSetupCmd = "cryptsetup"
 	fsckCmd       = "fsck"
 	tunefsCmd     = "tune2fs"
+	dfCmd         = "df"
 )
 
 var (
@@ -185,6 +186,15 @@ func closeLuksDestDev(config *config.Config, outLog io.Writer) error {
 	return nil
 }
 
+// displayDiskSpace runs "df" on the system and writes the output to the logfile.
+func displayDiskSpace(config *config.Config, outLog io.Writer) error {
+	cmd := dfCmd + " -m"
+	if err := runCommand("DF", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+	return nil
+}
+
 // fsCleanup runs fsck to make sure the filesystem under config.dest_dev is
 // intact, and sets the number of times to check to 0 and the last time
 // checked to now. This option should only be used in EXTn filesystems or
@@ -315,6 +325,9 @@ func backup() int {
 		log.Printf("Error running post-command: %v", err)
 		return osError
 	}
+
+	// Log df output (best effort)
+	displayDiskSpace(config, outLog)
 
 	return osSuccess
 }
