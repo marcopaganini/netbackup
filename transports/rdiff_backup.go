@@ -99,9 +99,6 @@ func (r *RdiffBackupTransport) runCmd(cmd []string) error {
 		"Updated mirror temp file.* does not match source",
 		"/.gvfs"}
 
-	fmt.Fprintf(r.outLog, "*** Starting netbackup: %s ***\n", time.Now())
-	fmt.Fprintf(r.outLog, "*** Command: %s ***\n", strings.Join(cmd, " "))
-
 	// Print stdout and stderr excluding any messages that match
 	// a substring in our spam list.
 	p := func(buf string) error {
@@ -111,6 +108,10 @@ func (r *RdiffBackupTransport) runCmd(cmd []string) error {
 		}
 		return nil
 	}
+
+	// Log
+	r.log.Verbosef(2, "*** Command = %q", strings.Join(cmd, " "))
+	fmt.Fprintf(r.outLog, "*** Command: %q\n", strings.Join(cmd, " "))
 
 	// Run
 	r.execute.SetStdout(p)
@@ -172,8 +173,26 @@ func (r *RdiffBackupTransport) Run() error {
 	cmd = append(cmd, src)
 	cmd = append(cmd, dst)
 
-	r.log.Verbosef(2, "rdiff-backup command = %q", strings.Join(cmd, " "))
+	fmt.Fprintf(r.outLog, "*** Starting netbackup: %s\n", time.Now())
 
 	// Execute the command
-	return r.runCmd(cmd)
+	err = r.runCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Remove older files, if requested.
+	if r.config.RdiffBackupMaxAge != 0 {
+		cmd := []string{
+			rdiffBackupCmd,
+			fmt.Sprintf("--remove-older-than=%dD", r.config.RdiffBackupMaxAge),
+			"--force",
+			dst}
+		r.log.Verbosef(2, "rdiff-backup command = %q", strings.Join(cmd, " "))
+		fmt.Fprintf(r.outLog, "*** Starting netbackup: %s\n", time.Now())
+		return r.runCmd(cmd)
+	}
+
+	return nil
+
 }

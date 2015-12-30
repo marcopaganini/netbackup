@@ -34,6 +34,8 @@ type Config struct {
 	// LUKS specific options
 	LuksDestDev string `ini:"luks_dest_dev"`
 	LuksKeyFile string `ini:"luks_keyfile"`
+	// Rdiff-backup specific options
+	RdiffBackupMaxAge int `ini:"rdiff_backup_max_age"`
 }
 
 // ParseConfig reads and parses a ini-style configuration from io.Reader and
