@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	// DEBUG
 	defaultLogDir = "/tmp/log/netbackup"
+	devMapperDir  = "/dev/mapper"
 
 	// Default permissions for log directories and files.
 	// The current umask will apply to these.
@@ -35,8 +35,9 @@ const (
 	osError   = 1
 
 	// External commands.
-	mountCmd  = "mount"
-	umountCmd = "umount"
+	mountCmd      = "mount"
+	umountCmd     = "umount"
+	cryptSetupCmd = "cryptsetup"
 )
 
 var (
@@ -142,6 +143,46 @@ func umountDestDev(config *config.Config, outLog io.Writer) error {
 	return nil
 }
 
+// openLuksDestDev opens the luks device specified by config.LuksDestDev and sets
+// config.DestDev to the /dev/mapper device.
+func openLuksDestDev(config *config.Config, outLog io.Writer) error {
+	// Our temporary dev/mapper device is based on the config name
+	devname := "netbackup_" + config.Name
+	devfile := filepath.Join(devMapperDir, devname)
+
+	// Make sure it doesn't already exist
+	if _, err := os.Stat(devfile); err == nil {
+		return fmt.Errorf("device mapper file %q already exists.", devfile)
+	}
+
+	// cryptsetup LuksOpen
+	cmd := cryptSetupCmd
+	if config.LuksKeyFile != "" {
+		cmd += " --key-file " + config.LuksKeyFile
+	}
+	cmd += " luksOpen " + config.LuksDestDev + " " + devname
+	if err := runCommand("LUKS_OPEN", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+
+	// Set the destination device to devfile so the normal processing
+	// will be sufficient to mount and dismount this device.
+	config.DestDev = devfile
+	return nil
+}
+
+// closeLuksDestDev closes the luks device specified by config.LuksDestDev.
+func closeLuksDestDev(config *config.Config, outLog io.Writer) error {
+	// Note that even though this function is called closeLuksDestDev we use
+	// the mount point under /dev/mapper to close the device.  The mount point
+	// was previously set by openLuksDestDev.
+	cmd := cryptSetupCmd + " luksClose " + config.DestDev
+	if err := runCommand("LUKS_CLOSE", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+	return nil
+}
+
 func backup() int {
 	var transp interface {
 		Run() error
@@ -182,19 +223,32 @@ func backup() int {
 	}
 	defer outLog.Close()
 
-	// Mount destination device, if needed.
-	if config.DestDev != "" && !opt.dryrun {
-		if err := mountDestDev(config, outLog); err != nil {
-			log.Printf("Error opening destination device %q: %v", config.DestDev, err)
-			return osError
+	if !opt.dryrun {
+		// Open LUKS device, if needed
+		if config.LuksDestDev != "" {
+			if err := openLuksDestDev(config, outLog); err != nil {
+				log.Printf("Error opening LUKS device %q: %v", config.LuksDestDev, err)
+				return osError
+			}
+			// close luks device at the end
+			defer closeLuksDestDev(config, outLog)
+			defer time.Sleep(2 * time.Second)
 		}
-		// umount destination filesystem and remove temp mount point.
-		defer os.Remove(config.DestDir)
-		defer umountDestDev(config, outLog)
-		// For some reason, not having a pause before attempting to unmount
-		// can generate a race condition where umount complains that the fs
-		// is busy (even though the transport is already down.)
-		defer time.Sleep(2 * time.Second)
+
+		// Mount destination device, if needed.
+		if config.DestDev != "" {
+			if err := mountDestDev(config, outLog); err != nil {
+				log.Printf("Error opening destination device %q: %v", config.DestDev, err)
+				return osError
+			}
+			// umount destination filesystem and remove temp mount point.
+			defer os.Remove(config.DestDir)
+			defer umountDestDev(config, outLog)
+			// For some reason, not having a pause before attempting to unmount
+			// can generate a race condition where umount complains that the fs
+			// is busy (even though the transport is already down.)
+			defer time.Sleep(2 * time.Second)
+		}
 	}
 
 	// Create new transport based on config.Transport

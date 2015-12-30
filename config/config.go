@@ -30,6 +30,9 @@ type Config struct {
 	Exclude     []string `ini:"exclude" delim:" "`
 	Include     []string `ini:"include" delim:" "`
 	Logfile     string   `ini:"logfile"`
+	// LUKS specific options
+	LuksDestDev string `ini:"luks_dest_dev"`
+	LuksKeyFile string `ini:"luks_keyfile"`
 }
 
 // ParseConfig reads and parses a ini-style configuration from io.Reader and
@@ -71,22 +74,47 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("Error parsing config: %v", err)
 	}
 
-	// Basic sanity checking
+	// Count the number of destinations set
+	ndest := 0
+	ndev := 0
+	if config.DestDir != "" {
+		ndest++
+	}
+	if config.DestDev != "" {
+		ndev++
+	}
+	if config.LuksDestDev != "" {
+		ndev++
+	}
+
+	// Basic config validation
 	switch {
-	case config.SourceDir == "":
-		return nil, fmt.Errorf("source_dir cannot be empty")
-	case (config.DestDir == "" && config.DestDev == "") || (config.DestDir != "" && config.DestDev != ""):
-		return nil, fmt.Errorf("either dest_dir OR dest_dev MUST be set")
-	case config.DestDev != "" && config.DestHost != "":
-		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported.")
+	// Base checks
 	case config.Name == "":
 		return nil, fmt.Errorf("name cannot be empty")
+	case config.SourceDir == "":
+		return nil, fmt.Errorf("source_dir cannot be empty")
 	case config.Transport == "":
 		return nil, fmt.Errorf("transport cannot be empty")
+	// Make sure destination combos are valid.
+	case (ndest + ndev) == 0:
+		return nil, fmt.Errorf("no destination set")
+	case (ndest + ndev) != 1:
+		return nil, fmt.Errorf("only one destination (dest_dir, dest_dev, or luks_dest_dev) may be set")
+	case ndev != 0 && config.DestHost != "":
+		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported.")
+	// All destinations must be an absolute path
 	case !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")
 	case config.DestDir != "" && !strings.HasPrefix(config.DestDir, "/"):
 		return nil, fmt.Errorf("dest_dir must be an absolute path")
+	case config.DestDev != "" && !strings.HasPrefix(config.DestDev, "/"):
+		return nil, fmt.Errorf("dest_dev must be an absolute path")
+	case config.LuksDestDev != "" && !strings.HasPrefix(config.LuksDestDev, "/"):
+		return nil, fmt.Errorf("dest_luks_dev must be an absolute path")
+	// Specific checks
+	case config.LuksDestDev != "" && config.LuksKeyFile == "":
+		return nil, fmt.Errorf("dest_luks_dev requires luks_key_file")
 	}
 
 	return config, nil

@@ -76,8 +76,7 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 	}
 }
 
-// Make sure that improper combinations of destination dir, device and host
-// generate an error.
+// Make sure that improper combinations of destinations produce an error.
 func TestDestOptions(t *testing.T) {
 	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\n"
 
@@ -91,6 +90,18 @@ func TestDestOptions(t *testing.T) {
 	r = strings.NewReader(baseConfig + "dest_dev=/dev/foo\ndest_host=foohost")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key dest_dev and dest_host are set; want non-nil error")
+	}
+
+	// dest_dev and dest_luks_dev should result in error.
+	r = strings.NewReader(baseConfig + "dest_dev=/dev/foo\ndest_luks_dev=/luksdev\nluks_key_file=foo")
+	if _, err := ParseConfig(r); err == nil {
+		t.Fatalf("ParseConfig succeeded when key dest_dev and luks_dest_dev are set; want non-nil error")
+	}
+
+	// dest_luks_dev without a key file should result in error.
+	r = strings.NewReader(baseConfig + "dest_luks_dev=/luksdev\nluks_key_file=foo")
+	if _, err := ParseConfig(r); err == nil {
+		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
 	}
 }
 
