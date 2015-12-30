@@ -24,6 +24,7 @@ type Config struct {
 	SourceDir   string   `ini:"source_dir"`
 	DestDir     string   `ini:"dest_dir"`
 	ExtraArgs   string   `ini:"extra_args"`
+	FSCleanup   bool     `ini:"fs_cleanup"`
 	PreCommand  string   `ini:"pre_command"`
 	PostCommand string   `ini:"post_command"`
 	Transport   string   `ini:"transport"`
@@ -103,6 +104,8 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("only one destination (dest_dir, dest_dev, or luks_dest_dev) may be set")
 	case ndev != 0 && config.DestHost != "":
 		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported.")
+	case ndev == 0 && config.FSCleanup:
+		return nil, fmt.Errorf("fs_cleanup can only be used when destination is a filesystem.")
 	// All destinations must be an absolute path
 	case !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")

@@ -38,6 +38,8 @@ const (
 	mountCmd      = "mount"
 	umountCmd     = "umount"
 	cryptSetupCmd = "cryptsetup"
+	fsckCmd       = "fsck"
+	tunefsCmd     = "tune2fs"
 )
 
 var (
@@ -183,6 +185,24 @@ func closeLuksDestDev(config *config.Config, outLog io.Writer) error {
 	return nil
 }
 
+// fsCleanup runs fsck to make sure the filesystem under config.dest_dev is
+// intact, and sets the number of times to check to 0 and the last time
+// checked to now. This option should only be used in EXTn filesystems or
+// filesystems that support tunefs.
+func fsCleanup(config *config.Config, outLog io.Writer) error {
+	// fsck (read-only check)
+	cmd := fsckCmd + " -n " + config.DestDev
+	if err := runCommand("FS_CLEANUP", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+	// Tunefs
+	cmd = tunefsCmd + " -C 0 -T now " + config.DestDev
+	if err := runCommand("FS_CLEANUP", cmd, nil, outLog); err != nil {
+		return fmt.Errorf("error running %q: %v", cmd, err)
+	}
+	return nil
+}
+
 func backup() int {
 	var transp interface {
 		Run() error
@@ -233,6 +253,14 @@ func backup() int {
 			// close luks device at the end
 			defer closeLuksDestDev(config, outLog)
 			defer time.Sleep(2 * time.Second)
+		}
+
+		// Run cleanup on fs prior to backup, if requested.
+		if config.FSCleanup {
+			if err := fsCleanup(config, outLog); err != nil {
+				log.Printf("Error performing pre-backup cleanup on %q: %v", config.DestDev, err)
+				return osError
+			}
 		}
 
 		// Mount destination device, if needed.

@@ -103,6 +103,12 @@ func TestDestOptions(t *testing.T) {
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
 	}
+
+	// filesystem_cleanup without a filesystem destination should result in error.
+	r = strings.NewReader(baseConfig + "dest_dir=/dst\nfs_cleanup=yes")
+	if _, err := ParseConfig(r); err == nil {
+		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
+	}
 }
 
 // Test that relative paths for source or destination dir result in error.
