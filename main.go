@@ -307,9 +307,11 @@ func backup() int {
 	}
 
 	// Execute pre-commands, if any.
-	if err := runCommand("PRE", config.PreCommand, nil, outLog); err != nil {
-		log.Printf("Error running pre-command: %v", err)
-		return osError
+	if config.PreCommand != "" {
+		if err := runCommand("PRE", config.PreCommand, nil, outLog); err != nil {
+			log.Printf("Error running pre-command: %v", err)
+			return osError
+		}
 	}
 
 	// Make it so...
@@ -320,10 +322,12 @@ func backup() int {
 	fmt.Fprintf(outLog, "*** Backup Result: Success\n")
 
 	// Execute post-commands, if any.
-	if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
-		fmt.Fprintf(outLog, "*** Backup Result: Failure (%v)\n", err)
-		log.Printf("Error running post-command: %v", err)
-		return osError
+	if config.PostCommand != "" {
+		if err := runCommand("POST", config.PostCommand, nil, outLog); err != nil {
+			fmt.Fprintf(outLog, "*** Backup Result: Failure (%v)\n", err)
+			log.Printf("Error running post-command: %v", err)
+			return osError
+		}
 	}
 
 	// Log df output (best effort)
