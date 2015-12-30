@@ -81,22 +81,14 @@ func createOutputLog(logPath string, logDir string, configName string) (*os.File
 	return w, path, err
 }
 
-// shellRun run a command string using the shell using the specified execute object.
-func shellRun(e *execute.Execute, cmd string) error {
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/sh"
-	}
-	a := []string{shell, "-c", "--", cmd}
-	return e.Exec(a)
-}
-
 // runCommand executes the pre or post commands using the shell. A prefix will
 // be used to log the commands to the output log (usually, "PRE" for
 // pre-commands or "POST" for post-commands Returns error.
 func runCommand(prefix string, cmd string, ex *execute.Execute, outLog io.Writer) error {
 	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
+	fmt.Fprintf(outLog, "%s\n", m)
 	log.Verboseln(int(opt.verbose), m)
+
 	if opt.dryrun {
 		return nil
 	}
@@ -111,11 +103,19 @@ func runCommand(prefix string, cmd string, ex *execute.Execute, outLog io.Writer
 	e.SetStdout(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stdout): %s\n", prefix, buf); return err })
 	e.SetStderr(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stderr): %s\n", prefix, buf); return err })
 
-	fmt.Fprintf(outLog, "*** %s\n", m)
-	err := shellRun(e, cmd)
-	fmt.Fprintf(outLog, "*** %s returned: %v\n", prefix, err)
-
-	return err
+	// Run using shell
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	err := e.Exec([]string{shell, "-c", "--", cmd})
+	if err != nil {
+		errmsg := fmt.Sprintf("%s returned: %v", prefix, err)
+		fmt.Fprintf(outLog, "*** %s\n", errmsg)
+		return fmt.Errorf(errmsg)
+	}
+	fmt.Fprintf(outLog, "%s returned: OK\n", prefix)
+	return nil
 }
 
 // mountDestDev mounts the destination device specified in config.DestDev into
@@ -130,7 +130,7 @@ func mountDestDev(config *config.Config, outLog io.Writer) error {
 	// simpler to specify defaults in /etc/fstab.
 	cmd := mountCmd + " " + config.DestDev + " " + tmpdir
 	if err := runCommand("MOUNT", cmd, nil, outLog); err != nil {
-		return fmt.Errorf("error running %q: %v", cmd, err)
+		return err
 	}
 
 	config.DestDir = tmpdir
@@ -140,10 +140,7 @@ func mountDestDev(config *config.Config, outLog io.Writer) error {
 // umountDestDev dismounts the destination device specified in config.DestDev.
 func umountDestDev(config *config.Config, outLog io.Writer) error {
 	cmd := umountCmd + " " + config.DestDev
-	if err := runCommand("UMOUNT", cmd, nil, outLog); err != nil {
-		return fmt.Errorf("error running %q: %v", cmd, err)
-	}
-	return nil
+	return runCommand("UMOUNT", cmd, nil, outLog)
 }
 
 // openLuksDestDev opens the luks device specified by config.LuksDestDev and sets
@@ -155,7 +152,7 @@ func openLuksDestDev(config *config.Config, outLog io.Writer) error {
 
 	// Make sure it doesn't already exist
 	if _, err := os.Stat(devfile); err == nil {
-		return fmt.Errorf("device mapper file %q already exists.", devfile)
+		return fmt.Errorf("device mapper file %q already exists", devfile)
 	}
 
 	// cryptsetup LuksOpen
@@ -165,7 +162,7 @@ func openLuksDestDev(config *config.Config, outLog io.Writer) error {
 	}
 	cmd += " luksOpen " + config.LuksDestDev + " " + devname
 	if err := runCommand("LUKS_OPEN", cmd, nil, outLog); err != nil {
-		return fmt.Errorf("error running %q: %v", cmd, err)
+		return err
 	}
 
 	// Set the destination device to devfile so the normal processing
@@ -180,19 +177,13 @@ func closeLuksDestDev(config *config.Config, outLog io.Writer) error {
 	// the mount point under /dev/mapper to close the device.  The mount point
 	// was previously set by openLuksDestDev.
 	cmd := cryptSetupCmd + " luksClose " + config.DestDev
-	if err := runCommand("LUKS_CLOSE", cmd, nil, outLog); err != nil {
-		return fmt.Errorf("error running %q: %v", cmd, err)
-	}
-	return nil
+	return runCommand("LUKS_CLOSE", cmd, nil, outLog)
 }
 
 // displayDiskSpace runs "df" on the system and writes the output to the logfile.
 func displayDiskSpace(config *config.Config, outLog io.Writer) error {
 	cmd := dfCmd + " -m"
-	if err := runCommand("DF", cmd, nil, outLog); err != nil {
-		return fmt.Errorf("error running %q: %v", cmd, err)
-	}
-	return nil
+	return runCommand("DF", cmd, nil, outLog)
 }
 
 // fsCleanup runs fsck to make sure the filesystem under config.dest_dev is
@@ -207,10 +198,7 @@ func fsCleanup(config *config.Config, outLog io.Writer) error {
 	}
 	// Tunefs
 	cmd = tunefsCmd + " -C 0 -T now " + config.DestDev
-	if err := runCommand("FS_CLEANUP", cmd, nil, outLog); err != nil {
-		return fmt.Errorf("error running %q: %v", cmd, err)
-	}
-	return nil
+	return runCommand("FS_CLEANUP", cmd, nil, outLog)
 }
 
 func backup() int {
