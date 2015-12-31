@@ -318,8 +318,10 @@ func backup() int {
 		}
 	}
 
-	// Log df output (best effort)
-	displayDiskSpace(config, outLog)
+	// Log df output if all backups are local (best effort)
+	if config.DestHost == "" {
+		displayDiskSpace(config, outLog)
+	}
 
 	return osSuccess
 }
