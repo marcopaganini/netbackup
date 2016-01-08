@@ -67,6 +67,17 @@ func usage(err error) {
 	os.Exit(2)
 }
 
+// NewBackup creates a new Backup instance.
+func NewBackup(log *logger.Logger, config *config.Config, verbose int, dryRun bool) *Backup {
+	// Create new Backup and execute.
+	return &Backup{
+		log:     log,
+		config:  config,
+		outLog:  os.Stdout,
+		verbose: verbose,
+		dryRun:  opt.dryrun}
+}
+
 // runCommand executes the given command using the shell. A prefix will
 // be used to log the commands to the output log. Returns error.
 func (b *Backup) runCommand(prefix string, cmd string, ex *execute.Execute) error {
@@ -317,11 +328,7 @@ func main() {
 	}
 
 	// Create new Backup and execute.
-	b := &Backup{
-		log:     log,
-		config:  config,
-		verbose: int(opt.verbose),
-		dryRun:  opt.dryrun}
+	b := NewBackup(log, config, int(opt.verbose), opt.dryrun)
 
 	if err = b.Run(); err != nil {
 		log.Println(err)
