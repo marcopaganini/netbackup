@@ -54,84 +54,20 @@ type Backup struct {
 var (
 	// Generic logging object
 	log *logger.Logger
+
+	// Output Log
+	outLog *os.File = os.Stderr
 )
 
-// usage prints an error message and program usage to stderr, exiting after
-// that.
-func usage(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n\n", err)
-	}
-	fmt.Fprintf(os.Stderr, "Usage%s:\n", os.Args[0])
-	flag.PrintDefaults()
-	os.Exit(2)
-}
-
 // NewBackup creates a new Backup instance.
-func NewBackup(log *logger.Logger, config *config.Config, verbose int, dryRun bool) *Backup {
+func NewBackup(log *logger.Logger, config *config.Config, outLog *os.File, verbose int, dryRun bool) *Backup {
 	// Create new Backup and execute.
 	return &Backup{
 		log:     log,
 		config:  config,
-		outLog:  os.Stdout,
+		outLog:  outLog,
 		verbose: verbose,
 		dryRun:  opt.dryrun}
-}
-
-// runCommand executes the given command using the shell. A prefix will
-// be used to log the commands to the output log. Returns error.
-func (b *Backup) runCommand(prefix string, cmd string, ex *execute.Execute) error {
-	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
-	fmt.Fprintf(b.outLog, "%s\n", m)
-	b.log.Verboseln(int(opt.verbose), m)
-
-	// Create a new execute object, if current is nil
-	e := ex
-	if e == nil {
-		e = execute.New()
-	}
-
-	// All streams copied to output log with "PRE:" as a prefix.
-	e.SetStdout(func(buf string) error { _, err := fmt.Fprintf(b.outLog, "%s(stdout): %s\n", prefix, buf); return err })
-	e.SetStderr(func(buf string) error { _, err := fmt.Fprintf(b.outLog, "%s(stderr): %s\n", prefix, buf); return err })
-
-	// Run using shell
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/sh"
-	}
-	err := e.Exec([]string{shell, "-c", "--", cmd})
-	if err != nil {
-		errmsg := fmt.Sprintf("%s returned: %v", prefix, err)
-		fmt.Fprintf(b.outLog, "*** %s\n", errmsg)
-		return fmt.Errorf(errmsg)
-	}
-	fmt.Fprintf(b.outLog, "%s returned: OK\n", prefix)
-	return nil
-}
-
-// createOutputLog creates a new output log file. If config.LogFile is set, it
-// is used unchanged. If not, a new log is created based under logDir using the
-// configuration name, and the system date. Intermediate directories are
-// created as needed. Sets b.config.outLog pointing to the writer of the log
-// just created. Returns the name of the file and error.
-func (b *Backup) createOutputLog(logDir string) error {
-	path := b.config.Logfile
-	if path == "" {
-		dir := filepath.Join(logDir, b.config.Name)
-		if err := os.MkdirAll(dir, defaultLogDirMode); err != nil {
-			return fmt.Errorf("unable to create dir tree %q: %v", dir, err)
-		}
-		ymd := time.Now().Format("2006-01-02")
-		path = filepath.Join(dir, b.config.Name+"-"+ymd+".log")
-	}
-
-	w, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, defaultLogFileMode)
-	if err != nil {
-		return fmt.Errorf("unable to open %q: %v", path, err)
-	}
-	b.outLog = w
-	return err
 }
 
 // mountDestDev mounts the destination device specified in b.config.DestDev into
@@ -142,10 +78,10 @@ func (b *Backup) mountDestDev() error {
 		return fmt.Errorf("unable to create temp directory: %v", err)
 	}
 
-	// We use the mount command instead of the mount syscal as it makes
+	// We use the mount command instead of the mount syscall as it makes
 	// simpler to specify defaults in /etc/fstab.
 	cmd := mountCmd + " " + b.config.DestDev + " " + tmpdir
-	if err := b.runCommand("MOUNT", cmd, nil); err != nil {
+	if err := runCommand("MOUNT", cmd, nil); err != nil {
 		return err
 	}
 
@@ -156,7 +92,7 @@ func (b *Backup) mountDestDev() error {
 // umountDestDev dismounts the destination device specified in config.DestDev.
 func (b *Backup) umountDestDev() error {
 	cmd := umountCmd + " " + b.config.DestDev
-	return b.runCommand("UMOUNT", cmd, nil)
+	return runCommand("UMOUNT", cmd, nil)
 }
 
 // openLuksDestDev opens the luks device specified by config.LuksDestDev and sets
@@ -177,7 +113,7 @@ func (b *Backup) openLuksDestDev() error {
 		cmd += " --key-file " + b.config.LuksKeyFile
 	}
 	cmd += " luksOpen " + b.config.LuksDestDev + " " + devname
-	if err := b.runCommand("LUKS_OPEN", cmd, nil); err != nil {
+	if err := runCommand("LUKS_OPEN", cmd, nil); err != nil {
 		return err
 	}
 
@@ -193,7 +129,7 @@ func (b *Backup) closeLuksDestDev() error {
 	// the mount point under /dev/mapper to close the device.  The mount point
 	// was previously set by openLuksDestDev.
 	cmd := cryptSetupCmd + " luksClose " + b.config.DestDev
-	return b.runCommand("LUKS_CLOSE", cmd, nil)
+	return runCommand("LUKS_CLOSE", cmd, nil)
 }
 
 // fsCleanup runs fsck to make sure the filesystem under config.dest_dev is
@@ -203,12 +139,12 @@ func (b *Backup) closeLuksDestDev() error {
 func (b *Backup) fsCleanup() error {
 	// fsck (read-only check)
 	cmd := fsckCmd + " -n " + b.config.DestDev
-	if err := b.runCommand("FS_CLEANUP", cmd, nil); err != nil {
+	if err := runCommand("FS_CLEANUP", cmd, nil); err != nil {
 		return fmt.Errorf("error running %q: %v", cmd, err)
 	}
 	// Tunefs
 	cmd = tunefsCmd + " -C 0 -T now " + b.config.DestDev
-	return b.runCommand("FS_CLEANUP", cmd, nil)
+	return runCommand("FS_CLEANUP", cmd, nil)
 }
 
 // Run executes the backup according to the config file and options.
@@ -216,14 +152,6 @@ func (b *Backup) Run() error {
 	var transp interface {
 		Run() error
 	}
-
-	// Open or create the output log file. This log will contain a transcript
-	// of stdout and stderr from all commands executed by this program.
-	err := b.createOutputLog(defaultLogDir)
-	if err != nil {
-		return fmt.Errorf("Error creating output log: %v", err)
-	}
-	defer b.outLog.Close()
 
 	if !b.dryRun {
 		// Open LUKS device, if needed
@@ -258,6 +186,8 @@ func (b *Backup) Run() error {
 		}
 	}
 
+	var err error
+
 	// Create new transport based on config.Transport
 	switch b.config.Transport {
 	case "rclone":
@@ -275,7 +205,7 @@ func (b *Backup) Run() error {
 
 	// Execute pre-commands, if any.
 	if b.config.PreCommand != "" && !b.dryRun {
-		if err := b.runCommand("PRE", b.config.PreCommand, nil); err != nil {
+		if err := runCommand("PRE", b.config.PreCommand, nil); err != nil {
 			return fmt.Errorf("Error running pre-command: %v", err)
 		}
 	}
@@ -288,13 +218,84 @@ func (b *Backup) Run() error {
 
 	// Execute post-commands, if any.
 	if b.config.PostCommand != "" && !b.dryRun {
-		if err := b.runCommand("POST", b.config.PostCommand, nil); err != nil {
+		if err := runCommand("POST", b.config.PostCommand, nil); err != nil {
 			fmt.Fprintf(b.outLog, "*** Backup Result: Failure (%v)\n", err)
 			return fmt.Errorf("Error running post-command: %v", err)
 		}
 	}
 
 	return nil
+}
+
+// usage prints an error message and program usage to stderr, exiting after
+// that.
+func usage(err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n\n", err)
+	}
+	fmt.Fprintf(os.Stderr, "Usage%s:\n", os.Args[0])
+	flag.PrintDefaults()
+	os.Exit(2)
+}
+
+// runCommand executes the given command using the shell. A prefix will
+// be used to log the commands to the output log. Returns error.
+func runCommand(prefix string, cmd string, ex *execute.Execute) error {
+	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
+	fmt.Fprintf(outLog, "%s\n", m)
+	log.Verboseln(int(opt.verbose), m)
+
+	// Create a new execute object, if current is nil
+	e := ex
+	if e == nil {
+		e = execute.New()
+	}
+
+	// All streams copied to output log with "PRE:" as a prefix.
+	e.SetStdout(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stdout): %s\n", prefix, buf); return err })
+	e.SetStderr(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stderr): %s\n", prefix, buf); return err })
+
+	// Run using shell
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	err := e.Exec([]string{shell, "-c", "--", cmd})
+	if err != nil {
+		errmsg := fmt.Sprintf("%s returned: %v", prefix, err)
+		fmt.Fprintf(outLog, "*** %s\n", errmsg)
+		return fmt.Errorf(errmsg)
+	}
+	fmt.Fprintf(outLog, "%s returned: OK\n", prefix)
+	return nil
+}
+
+// logPath constructs the name for the output log using the the name and
+// the current system date.
+func logPath(name string, logDir string) string {
+	ymd := time.Now().Format("2006-01-02")
+	dir := filepath.Join(logDir, name)
+	return filepath.Join(dir, name+"-"+ymd+".log")
+}
+
+// logOpen opens (for append) or creates (if needed) the specified file.
+// If the file doesn't exist, all intermediate directories will be created.
+// Returns an *os.File to the just opened file.
+func logOpen(path string) (*os.File, error) {
+	// Create full directory path if it doesn't exist yet.
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dir, defaultLogDirMode); err != nil {
+			return nil, fmt.Errorf("unable to create dir tree %q: %v", dir, err)
+		}
+	}
+
+	// Open for append or create if doesn't exist.
+	w, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, defaultLogFileMode)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open %q: %v", path, err)
+	}
+	return w, nil
 }
 
 // main
@@ -327,8 +328,21 @@ func main() {
 		os.Exit(osError)
 	}
 
+	// Create output log. Use the name specified in the config, if any,
+	// or create a "standard" name using the backup name and date.
+	logFilename := config.Logfile
+	if logFilename == "" {
+		logFilename = logPath(config.Name, defaultLogDir)
+	}
+	outLog, err := logOpen(logFilename)
+	if err != nil {
+		log.Printf("Unable to open/create logfile: %v", err)
+		os.Exit(osError)
+	}
+	defer outLog.Close()
+
 	// Create new Backup and execute.
-	b := NewBackup(log, config, int(opt.verbose), opt.dryrun)
+	b := NewBackup(log, config, outLog, int(opt.verbose), opt.dryrun)
 
 	if err = b.Run(); err != nil {
 		log.Println(err)

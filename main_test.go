@@ -5,12 +5,9 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
@@ -39,37 +36,27 @@ func TestCreateOutputLog(t *testing.T) {
 	w.Close()
 
 	// Test specific file under /tmp. File must exist at the end.
-	b := fakeBackup()
-	b.config.Logfile = testFname
-
-	err = b.createOutputLog("")
+	w, err = logOpen(testFname)
 	if err != nil {
 		t.Fatalf("CreateOutputLog failed: %v", err)
 	}
-	b.outLog.Close()
+	w.Close()
 	if _, err := os.Stat(testFname); err != nil {
 		t.Errorf("should be able to open %s; got %v", testFname, err)
 	}
 	os.Remove(testFname)
 
-	// Test automatic file generation. A file named
-	// $dir/backup_name/backup_name-yyyy-mm-dd.log
-	// should be created.
-	b = fakeBackup()
-	b.config.Name = "dummy"
-	err = b.createOutputLog("/tmp")
+	// Test that intermediate directories are created
+	w, err = logOpen("/tmp/a/b/c/log")
 	if err != nil {
 		t.Fatalf("CreateOutputLog failed: %v", err)
 	}
-	b.outLog.Close()
+	w.Close()
 
 	// File must match the expected name and exist
-	expected := fmt.Sprintf("/tmp/%s/%s-%s.log", b.config.Name, b.config.Name, time.Now().Format("2006-01-02"))
-	if b.outLog.Name() != expected {
-		t.Errorf("fname should be %s; is %s", expected, b.outLog.Name())
+	expected := "/tmp/a/b/c/log"
+	if _, err := os.Stat(expected); os.IsNotExist(err) {
+		t.Errorf("%s not created", expected)
 	}
-	if _, err := os.Stat(b.outLog.Name()); os.IsNotExist(err) {
-		t.Errorf("%s not created", b.outLog.Name())
-	}
-	os.RemoveAll(filepath.Join("/tmp", b.config.Name))
+	os.RemoveAll("/tmp/a")
 }
