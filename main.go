@@ -70,9 +70,9 @@ func NewBackup(log *logger.Logger, config *config.Config, outLog *os.File, verbo
 		dryRun:  opt.dryrun}
 }
 
-// mountDestDev mounts the destination device specified in b.config.DestDev into
+// mountDev mounts the destination device specified in b.config.DestDev into
 // a temporary mount point and set b.config.DestDir to point to this directory.
-func (b *Backup) mountDestDev() error {
+func (b *Backup) mountDev() error {
 	tmpdir, err := ioutil.TempDir("", "netbackup_mount")
 	if err != nil {
 		return fmt.Errorf("unable to create temp directory: %v", err)
@@ -89,15 +89,15 @@ func (b *Backup) mountDestDev() error {
 	return nil
 }
 
-// umountDestDev dismounts the destination device specified in config.DestDev.
-func (b *Backup) umountDestDev() error {
+// umountDev dismounts the destination device specified in config.DestDev.
+func (b *Backup) umountDev() error {
 	cmd := umountCmd + " " + b.config.DestDev
 	return runCommand("UMOUNT", cmd, nil)
 }
 
-// openLuksDestDev opens the luks device specified by config.LuksDestDev and sets
+// openLuks opens the luks device specified by config.LuksDestDev and sets
 // b.config.DestDev to the /dev/mapper device.
-func (b *Backup) openLuksDestDev() error {
+func (b *Backup) openLuks() error {
 	// Our temporary dev/mapper device is based on the config name
 	devname := "netbackup_" + b.config.Name
 	devfile := filepath.Join(devMapperDir, devname)
@@ -123,20 +123,20 @@ func (b *Backup) openLuksDestDev() error {
 	return nil
 }
 
-// closeLuksDestDev closes the luks device specified by b.config.LuksDestDev.
-func (b *Backup) closeLuksDestDev() error {
-	// Note that even though this function is called closeLuksDestDev we use
+// closeLuks closes the current destination device.
+func (b *Backup) closeLuks() error {
+	// Note that even though this function is called closeLuks we use
 	// the mount point under /dev/mapper to close the device.  The mount point
-	// was previously set by openLuksDestDev.
+	// was previously set by openLuks.
 	cmd := cryptSetupCmd + " luksClose " + b.config.DestDev
 	return runCommand("LUKS_CLOSE", cmd, nil)
 }
 
-// fsCleanup runs fsck to make sure the filesystem under config.dest_dev is
+// cleanFilesystem runs fsck to make sure the filesystem under config.dest_dev is
 // intact, and sets the number of times to check to 0 and the last time
 // checked to now. This option should only be used in EXTn filesystems or
 // filesystems that support tunefs.
-func (b *Backup) fsCleanup() error {
+func (b *Backup) cleanFilesystem() error {
 	// fsck (read-only check)
 	cmd := fsckCmd + " -n " + b.config.DestDev
 	if err := runCommand("FS_CLEANUP", cmd, nil); err != nil {
@@ -156,29 +156,29 @@ func (b *Backup) Run() error {
 	if !b.dryRun {
 		// Open LUKS device, if needed
 		if b.config.LuksDestDev != "" {
-			if err := b.openLuksDestDev(); err != nil {
+			if err := b.openLuks(); err != nil {
 				return fmt.Errorf("Error opening LUKS device %q: %v", b.config.LuksDestDev, err)
 			}
 			// close luks device at the end
-			defer b.closeLuksDestDev()
+			defer b.closeLuks()
 			defer time.Sleep(2 * time.Second)
 		}
 
 		// Run cleanup on fs prior to backup, if requested.
 		if b.config.FSCleanup {
-			if err := b.fsCleanup(); err != nil {
+			if err := b.cleanFilesystem(); err != nil {
 				return fmt.Errorf("Error performing pre-backup cleanup on %q: %v", b.config.DestDev, err)
 			}
 		}
 
 		// Mount destination device, if needed.
 		if b.config.DestDev != "" {
-			if err := b.mountDestDev(); err != nil {
+			if err := b.mountDev(); err != nil {
 				return fmt.Errorf("Error opening destination device %q: %v", b.config.DestDev, err)
 			}
 			// umount destination filesystem and remove temp mount point.
 			defer os.Remove(b.config.DestDir)
-			defer b.umountDestDev()
+			defer b.umountDev()
 			// For some reason, not having a pause before attempting to unmount
 			// can generate a race condition where umount complains that the fs
 			// is busy (even though the transport is already down.)
