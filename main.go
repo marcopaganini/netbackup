@@ -29,10 +29,6 @@ const (
 	defaultLogDirMode  = 0777
 	defaultLogFileMode = 0666
 
-	// Return codes
-	osSuccess = 0
-	osError   = 1
-
 	// External commands.
 	mountCmd      = "mount"
 	umountCmd     = "umount"
@@ -244,8 +240,7 @@ func usage(err error) {
 // runCommand executes the given command using the shell. A prefix will
 // be used to log the commands to the output log. Returns error.
 func runCommand(prefix string, cmd string, ex *execute.Execute) error {
-	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
-	log.Verboseln(1, m)
+	log.Verbosef(1, "%s Command: %q", prefix, cmd)
 
 	// Create a new execute object, if current is nil
 	e := ex
@@ -254,8 +249,8 @@ func runCommand(prefix string, cmd string, ex *execute.Execute) error {
 	}
 
 	// All streams copied to output log with "PRE:" as a prefix.
-	e.SetStdout(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stdout): %s\n", prefix, buf); return err })
-	e.SetStderr(func(buf string) error { _, err := fmt.Fprintf(outLog, "%s(stderr): %s\n", prefix, buf); return err })
+	e.SetStdout(func(buf string) error { log.Verbosef(3, "%s(stdout): %s\n", prefix, buf); return nil })
+	e.SetStderr(func(buf string) error { log.Verbosef(3, "%s(stderr): %s\n", prefix, buf); return nil })
 
 	// Run using shell
 	shell := os.Getenv("SHELL")
@@ -306,8 +301,7 @@ func main() {
 
 	// Parse command line flags and read config file.
 	if err := parseFlags(); err != nil {
-		log.Printf("Command line error: %v", err)
-		os.Exit(osError)
+		log.Fatalf("Command line error: %v", err)
 	}
 
 	// Set verbose level
@@ -322,13 +316,11 @@ func main() {
 	// Open and parse config file
 	cfg, err := os.Open(opt.config)
 	if err != nil {
-		log.Printf("Unable to open config file: %v", err)
-		os.Exit(osError)
+		log.Fatalf("Unable to open config file: %v", err)
 	}
 	config, err := config.ParseConfig(cfg)
 	if err != nil {
-		log.Printf("Configuration error in %q: %v", opt.config, err)
-		os.Exit(osError)
+		log.Fatalf("Configuration error in %q: %v", opt.config, err)
 	}
 
 	// Create output log. Use the name specified in the config, if any,
@@ -339,21 +331,18 @@ func main() {
 	}
 	outLog, err := logOpen(logFilename)
 	if err != nil {
-		log.Printf("Unable to open/create logfile: %v", err)
-		os.Exit(osError)
+		log.Fatalf("Unable to open/create logfile: %v", err)
 	}
 	defer outLog.Close()
 
 	// Configure log to log everything to stderr and outLog
-	log.SetOutput([]*os.File{os.Stderr, outLog})
+	log.SetMirrorOutput(outLog)
 
 	// Create new Backup and execute.
 	b := NewBackup(log, config, outLog, verbose, opt.dryrun)
 
 	if err = b.Run(); err != nil {
-		log.Println(err)
-		os.Exit(osError)
+		log.Fatalln(err)
 	}
 	log.Verboseln(1, "*** Backup Result: Success")
-	os.Exit(osSuccess)
 }
