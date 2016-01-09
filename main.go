@@ -196,11 +196,11 @@ func (b *Backup) Run() error {
 	// Create new transport based on config.Transport
 	switch b.config.Transport {
 	case "rclone":
-		transp, err = transports.NewRcloneTransport(b.config, nil, b.outLog, int(opt.verbose), b.dryRun)
+		transp, err = transports.NewRcloneTransport(b.config, nil, b.outLog, b.verbose, b.dryRun)
 	case "rdiff-backup":
-		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.outLog, int(opt.verbose), b.dryRun)
+		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.outLog, b.verbose, b.dryRun)
 	case "rsync":
-		transp, err = transports.NewRsyncTransport(b.config, nil, b.outLog, int(opt.verbose), b.dryRun)
+		transp, err = transports.NewRsyncTransport(b.config, nil, b.outLog, b.verbose, b.dryRun)
 	default:
 		return fmt.Errorf("Unknown transport %q", b.config.Transport)
 	}
@@ -219,13 +219,11 @@ func (b *Backup) Run() error {
 	if err := transp.Run(); err != nil {
 		return fmt.Errorf("Error running backup: %v", err)
 	}
-	fmt.Fprintf(b.outLog, "*** Backup Result: Success\n")
 
 	// Execute post-commands, if any.
 	if b.config.PostCommand != "" && !b.dryRun {
 		if err := runCommand("POST", b.config.PostCommand, nil); err != nil {
-			fmt.Fprintf(b.outLog, "*** Backup Result: Failure (%v)\n", err)
-			return fmt.Errorf("Error running post-command: %v", err)
+			return fmt.Errorf("Error running post-command (possible backup failure): %v", err)
 		}
 	}
 
@@ -247,8 +245,7 @@ func usage(err error) {
 // be used to log the commands to the output log. Returns error.
 func runCommand(prefix string, cmd string, ex *execute.Execute) error {
 	m := fmt.Sprintf("%s Command: %q", prefix, cmd)
-	fmt.Fprintf(outLog, "%s\n", m)
-	log.Verboseln(int(opt.verbose), m)
+	log.Verboseln(1, m)
 
 	// Create a new execute object, if current is nil
 	e := ex
@@ -268,10 +265,10 @@ func runCommand(prefix string, cmd string, ex *execute.Execute) error {
 	err := e.Exec([]string{shell, "-c", "--", cmd})
 	if err != nil {
 		errmsg := fmt.Sprintf("%s returned: %v", prefix, err)
-		fmt.Fprintf(outLog, "*** %s\n", errmsg)
+		log.Verbosef(1, "*** %s\n", errmsg)
 		return fmt.Errorf(errmsg)
 	}
-	fmt.Fprintf(outLog, "%s returned: OK\n", prefix)
+	log.Verbosef(1, "%s returned: OK\n", prefix)
 	return nil
 }
 
@@ -314,8 +311,9 @@ func main() {
 	}
 
 	// Set verbose level
-	if opt.verbose > 0 {
-		log.SetVerboseLevel(int(opt.verbose))
+	verbose := int(opt.verbose)
+	if verbose > 0 {
+		log.SetVerboseLevel(verbose)
 	}
 	if opt.dryrun {
 		log.Verbosef(2, "Warning: Dry-Run mode. Won't execute any commands.")
@@ -346,13 +344,16 @@ func main() {
 	}
 	defer outLog.Close()
 
+	// Configure log to log everything to stderr and outLog
+	log.SetOutput([]*os.File{os.Stderr, outLog})
+
 	// Create new Backup and execute.
-	b := NewBackup(log, config, outLog, int(opt.verbose), opt.dryrun)
+	b := NewBackup(log, config, outLog, verbose, opt.dryrun)
 
 	if err = b.Run(); err != nil {
 		log.Println(err)
 		os.Exit(osError)
 	}
-
+	log.Verboseln(1, "*** Backup Result: Success")
 	os.Exit(osSuccess)
 }
