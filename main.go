@@ -70,23 +70,22 @@ func NewBackup(log *logger.Logger, config *config.Config, outLog *os.File, verbo
 		dryRun:  opt.dryrun}
 }
 
-// mountDev mounts the destination device specified in b.config.DestDev into
-// a temporary mount point and set b.config.DestDir to point to this directory.
-func (b *Backup) mountDev() error {
+// mountDev mounts the destination device into a temporary mount point and
+// returns the mount point name.
+func (b *Backup) mountDev() (string, error) {
 	tmpdir, err := ioutil.TempDir("", "netbackup_mount")
 	if err != nil {
-		return fmt.Errorf("unable to create temp directory: %v", err)
+		return "", fmt.Errorf("unable to create temp directory: %v", err)
 	}
 
 	// We use the mount command instead of the mount syscall as it makes
 	// simpler to specify defaults in /etc/fstab.
 	cmd := mountCmd + " " + b.config.DestDev + " " + tmpdir
 	if err := runCommand("MOUNT", cmd, nil); err != nil {
-		return err
+		return "", err
 	}
 
-	b.config.DestDir = tmpdir
-	return nil
+	return tmpdir, nil
 }
 
 // umountDev dismounts the destination device specified in config.DestDev.
@@ -95,16 +94,16 @@ func (b *Backup) umountDev() error {
 	return runCommand("UMOUNT", cmd, nil)
 }
 
-// openLuks opens the luks device specified by config.LuksDestDev and sets
-// b.config.DestDev to the /dev/mapper device.
-func (b *Backup) openLuks() error {
+// openLuks opens the luks destination device into a temporary /dev/mapper
+// device file and retuns the /dev/mapper device filename.
+func (b *Backup) openLuks() (string, error) {
 	// Our temporary dev/mapper device is based on the config name
 	devname := "netbackup_" + b.config.Name
 	devfile := filepath.Join(devMapperDir, devname)
 
 	// Make sure it doesn't already exist
 	if _, err := os.Stat(devfile); err == nil {
-		return fmt.Errorf("device mapper file %q already exists", devfile)
+		return "", fmt.Errorf("device mapper file %q already exists", devfile)
 	}
 
 	// cryptsetup LuksOpen
@@ -114,20 +113,15 @@ func (b *Backup) openLuks() error {
 	}
 	cmd += " luksOpen " + b.config.LuksDestDev + " " + devname
 	if err := runCommand("LUKS_OPEN", cmd, nil); err != nil {
-		return err
+		return "", err
 	}
 
-	// Set the destination device to devfile so the normal processing
-	// will be sufficient to mount and dismount this device.
-	b.config.DestDev = devfile
-	return nil
+	return devfile, nil
 }
 
 // closeLuks closes the current destination device.
 func (b *Backup) closeLuks() error {
-	// Note that even though this function is called closeLuks we use
-	// the mount point under /dev/mapper to close the device.  The mount point
-	// was previously set by openLuks.
+	// cryptsetup luksClose needs the /dev/mapper device name.
 	cmd := cryptSetupCmd + " luksClose " + b.config.DestDev
 	return runCommand("LUKS_CLOSE", cmd, nil)
 }
@@ -156,9 +150,15 @@ func (b *Backup) Run() error {
 	if !b.dryRun {
 		// Open LUKS device, if needed
 		if b.config.LuksDestDev != "" {
-			if err := b.openLuks(); err != nil {
+			devfile, err := b.openLuks()
+			if err != nil {
 				return fmt.Errorf("Error opening LUKS device %q: %v", b.config.LuksDestDev, err)
 			}
+			// Set the destination device to the /dev/mapper device opened by
+			// LUKS. This should allow the natural processing to mount and
+			// dismount this device.
+			b.config.DestDev = devfile
+
 			// close luks device at the end
 			defer b.closeLuks()
 			defer time.Sleep(2 * time.Second)
@@ -173,9 +173,14 @@ func (b *Backup) Run() error {
 
 		// Mount destination device, if needed.
 		if b.config.DestDev != "" {
-			if err := b.mountDev(); err != nil {
+			tmpdir, err := b.mountDev()
+			if err != nil {
 				return fmt.Errorf("Error opening destination device %q: %v", b.config.DestDev, err)
 			}
+			// After we mount the destination device, we set Destdir to that location
+			// so the backup will proceed seamlessly.
+			b.config.DestDir = tmpdir
+
 			// umount destination filesystem and remove temp mount point.
 			defer os.Remove(b.config.DestDir)
 			defer b.umountDev()
