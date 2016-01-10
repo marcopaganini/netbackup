@@ -30,7 +30,6 @@ func NewRsyncTransport(
 	config *config.Config,
 	ex Executor,
 	outLog io.Writer,
-	verbose int,
 	dryRun bool) (*RsyncTransport, error) {
 
 	t := &RsyncTransport{}
@@ -51,7 +50,6 @@ func NewRsyncTransport(
 	}
 
 	// Create a new logger with our verbosity settings
-	t.log.SetVerboseLevel(verbose)
 	return t, nil
 }
 

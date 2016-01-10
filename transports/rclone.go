@@ -30,7 +30,6 @@ func NewRcloneTransport(
 	config *config.Config,
 	ex Executor,
 	outLog io.Writer,
-	verbose int,
 	dryRun bool) (*RcloneTransport, error) {
 
 	t := &RcloneTransport{}
@@ -50,8 +49,6 @@ func NewRcloneTransport(
 		return nil, err
 	}
 
-	// Create a new logger with our verbosity settings
-	t.log.SetVerboseLevel(verbose)
 	return t, nil
 }
 

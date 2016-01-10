@@ -25,7 +25,7 @@ func rsyncTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mus
 	fakeExecute := NewFakeExecute()
 
 	// Create a new rsync object with our fakeExecute and a sinking outLogWriter.
-	rsync, err := NewRsyncTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), 0, dryRun)
+	rsync, err := NewRsyncTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), dryRun)
 	if err != nil {
 		if mustError {
 			return

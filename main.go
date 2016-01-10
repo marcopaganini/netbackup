@@ -40,11 +40,10 @@ const (
 
 // Backup contains information for a given backup instance.
 type Backup struct {
-	log     *logger.Logger
-	config  *config.Config
-	outLog  *os.File
-	verbose int
-	dryRun  bool
+	log    *logger.Logger
+	config *config.Config
+	outLog *os.File
+	dryRun bool
 }
 
 var (
@@ -52,18 +51,17 @@ var (
 	log *logger.Logger
 
 	// Output Log
-	outLog *os.File = os.Stderr
+	outLog = os.Stderr
 )
 
 // NewBackup creates a new Backup instance.
-func NewBackup(log *logger.Logger, config *config.Config, outLog *os.File, verbose int, dryRun bool) *Backup {
+func NewBackup(log *logger.Logger, config *config.Config, outLog *os.File, dryRun bool) *Backup {
 	// Create new Backup and execute.
 	return &Backup{
-		log:     log,
-		config:  config,
-		outLog:  outLog,
-		verbose: verbose,
-		dryRun:  opt.dryrun}
+		log:    log,
+		config: config,
+		outLog: outLog,
+		dryRun: opt.dryrun}
 }
 
 // mountDev mounts the destination device into a temporary mount point and
@@ -192,11 +190,11 @@ func (b *Backup) Run() error {
 	// Create new transport based on config.Transport
 	switch b.config.Transport {
 	case "rclone":
-		transp, err = transports.NewRcloneTransport(b.config, nil, b.outLog, b.verbose, b.dryRun)
+		transp, err = transports.NewRcloneTransport(b.config, nil, b.outLog, b.dryRun)
 	case "rdiff-backup":
-		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.outLog, b.verbose, b.dryRun)
+		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.outLog, b.dryRun)
 	case "rsync":
-		transp, err = transports.NewRsyncTransport(b.config, nil, b.outLog, b.verbose, b.dryRun)
+		transp, err = transports.NewRsyncTransport(b.config, nil, b.outLog, b.dryRun)
 	default:
 		return fmt.Errorf("Unknown transport %q", b.config.Transport)
 	}
@@ -339,7 +337,7 @@ func main() {
 	log.SetMirrorOutput(outLog)
 
 	// Create new Backup and execute.
-	b := NewBackup(log, config, outLog, verbose, opt.dryrun)
+	b := NewBackup(log, config, outLog, opt.dryrun)
 
 	if err = b.Run(); err != nil {
 		log.Fatalln(err)

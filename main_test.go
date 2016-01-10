@@ -19,10 +19,9 @@ func fakeBackup() *Backup {
 	fakeConfig := &config.Config{}
 
 	fakeBackup := &Backup{
-		log:     log,
-		config:  fakeConfig,
-		verbose: 0,
-		dryRun:  false}
+		log:    log,
+		config: fakeConfig,
+		dryRun: false}
 	return fakeBackup
 }
 

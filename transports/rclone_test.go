@@ -21,7 +21,7 @@ func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mu
 	fakeExecute := NewFakeExecute()
 
 	// Create a new rclone object with our fakeExecute and a sinking outLogWriter.
-	rclone, err := NewRcloneTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), 0, dryRun)
+	rclone, err := NewRcloneTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), dryRun)
 	if err != nil {
 		if mustError {
 			return

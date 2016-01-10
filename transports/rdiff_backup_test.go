@@ -25,7 +25,7 @@ func rdiffBackupTest(t *testing.T, cfg *config.Config, expect string, dryRun boo
 	fakeExecute := NewFakeExecute()
 
 	// Create a new rdiff-backup object with our fakeExecute and a sinking outLogWriter.
-	rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), 0, dryRun)
+	rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), dryRun)
 	if err != nil {
 		if mustError {
 			return
