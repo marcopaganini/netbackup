@@ -14,7 +14,7 @@ import (
 	"os/exec"
 )
 
-// callback functions for stdout/stderr output
+// CallbackFunc represents callback functions functions for stdout/stderr output
 type CallbackFunc func(string) error
 
 // Execute defines a struct to easily run external programs and
