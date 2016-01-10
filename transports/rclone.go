@@ -11,7 +11,6 @@ import (
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"io"
 	"os"
 	"strings"
 )
@@ -26,17 +25,11 @@ type RcloneTransport struct {
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(
-	config *config.Config,
-	ex Executor,
-	outLog io.Writer,
-	dryRun bool) (*RcloneTransport, error) {
-
+func NewRcloneTransport(config *config.Config, ex Executor, log *logger.Logger, dryRun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{}
 	t.config = config
+	t.log = log
 	t.dryRun = dryRun
-	t.outLog = outLog
-	t.log = logger.New("")
 
 	// If execute object is nil, create a new one
 	t.execute = ex

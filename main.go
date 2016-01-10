@@ -42,25 +42,20 @@ const (
 type Backup struct {
 	log    *logger.Logger
 	config *config.Config
-	outLog *os.File
 	dryRun bool
 }
 
 var (
 	// Generic logging object
 	log *logger.Logger
-
-	// Output Log
-	outLog = os.Stderr
 )
 
 // NewBackup creates a new Backup instance.
-func NewBackup(log *logger.Logger, config *config.Config, outLog *os.File, dryRun bool) *Backup {
+func NewBackup(config *config.Config, log *logger.Logger, dryRun bool) *Backup {
 	// Create new Backup and execute.
 	return &Backup{
 		log:    log,
 		config: config,
-		outLog: outLog,
 		dryRun: opt.dryrun}
 }
 
@@ -190,11 +185,11 @@ func (b *Backup) Run() error {
 	// Create new transport based on config.Transport
 	switch b.config.Transport {
 	case "rclone":
-		transp, err = transports.NewRcloneTransport(b.config, nil, b.outLog, b.dryRun)
+		transp, err = transports.NewRcloneTransport(b.config, nil, b.log, b.dryRun)
 	case "rdiff-backup":
-		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.outLog, b.dryRun)
+		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.log, b.dryRun)
 	case "rsync":
-		transp, err = transports.NewRsyncTransport(b.config, nil, b.outLog, b.dryRun)
+		transp, err = transports.NewRsyncTransport(b.config, nil, b.log, b.dryRun)
 	default:
 		return fmt.Errorf("Unknown transport %q", b.config.Transport)
 	}
@@ -337,7 +332,7 @@ func main() {
 	log.SetMirrorOutput(outLog)
 
 	// Create new Backup and execute.
-	b := NewBackup(log, config, outLog, opt.dryrun)
+	b := NewBackup(config, log, opt.dryrun)
 
 	if err = b.Run(); err != nil {
 		log.Fatalln(err)

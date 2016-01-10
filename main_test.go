@@ -7,6 +7,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/marcopaganini/logger"
@@ -25,11 +26,11 @@ func fakeBackup() *Backup {
 	return fakeBackup
 }
 
-// Test createOutputLog
-func TestCreateOutputLog(t *testing.T) {
+// Test logOpen
+func TestLogOpen(t *testing.T) {
 	w, err := ioutil.TempFile("/tmp/", "test")
 	if err != nil {
-		t.Fatalf("Tempdir failed: %v", err)
+		t.Fatalf("TempFile failed: %v", err)
 	}
 	testFname := w.Name()
 	w.Close()
@@ -37,7 +38,7 @@ func TestCreateOutputLog(t *testing.T) {
 	// Test specific file under /tmp. File must exist at the end.
 	w, err = logOpen(testFname)
 	if err != nil {
-		t.Fatalf("CreateOutputLog failed: %v", err)
+		t.Fatalf("logOpen failed: %v", err)
 	}
 	w.Close()
 	if _, err := os.Stat(testFname); err != nil {
@@ -46,16 +47,22 @@ func TestCreateOutputLog(t *testing.T) {
 	os.Remove(testFname)
 
 	// Test that intermediate directories are created
-	w, err = logOpen("/tmp/a/b/c/log")
+	basedir, err := ioutil.TempDir("/tmp", "netbackup_test")
 	if err != nil {
-		t.Fatalf("CreateOutputLog failed: %v", err)
+		t.Errorf("error creating temporary dir: %v", err)
+	}
+	logpath := "a/b/c/log"
+
+	w, err = logOpen(filepath.Join(basedir, logpath))
+	if err != nil {
+		t.Fatalf("logOpen failed: %v", err)
 	}
 	w.Close()
 
 	// File must match the expected name and exist
-	expected := "/tmp/a/b/c/log"
+	expected := filepath.Join(basedir, logpath)
 	if _, err := os.Stat(expected); os.IsNotExist(err) {
 		t.Errorf("%s not created", expected)
 	}
-	os.RemoveAll("/tmp/a")
+	os.RemoveAll(basedir)
 }

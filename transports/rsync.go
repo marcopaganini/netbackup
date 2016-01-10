@@ -11,7 +11,6 @@ import (
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"io"
 	"os"
 	"strings"
 )
@@ -26,17 +25,11 @@ type RsyncTransport struct {
 }
 
 // NewRsyncTransport creates a new Transport object for rsync.
-func NewRsyncTransport(
-	config *config.Config,
-	ex Executor,
-	outLog io.Writer,
-	dryRun bool) (*RsyncTransport, error) {
-
+func NewRsyncTransport(config *config.Config, ex Executor, log *logger.Logger, dryRun bool) (*RsyncTransport, error) {
 	t := &RsyncTransport{}
 	t.config = config
+	t.log = log
 	t.dryRun = dryRun
-	t.outLog = outLog
-	t.log = logger.New("")
 
 	// If execute object is nil, create a new one
 	t.execute = ex
@@ -48,8 +41,6 @@ func NewRsyncTransport(
 	if err := t.checkConfig(); err != nil {
 		return nil, err
 	}
-
-	// Create a new logger with our verbosity settings
 	return t, nil
 }
 

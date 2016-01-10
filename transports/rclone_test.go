@@ -5,11 +5,10 @@
 package transports
 
 import (
+	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"os"
 	"regexp"
 	"testing"
-	"testing/iotest"
 )
 
 // Common rclone tests: Initialize an rclone instance with the config passed
@@ -20,8 +19,10 @@ import (
 func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mustError bool) {
 	fakeExecute := NewFakeExecute()
 
+	log := logger.New("")
+
 	// Create a new rclone object with our fakeExecute and a sinking outLogWriter.
-	rclone, err := NewRcloneTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), dryRun)
+	rclone, err := NewRcloneTransport(cfg, fakeExecute, log, dryRun)
 	if err != nil {
 		if mustError {
 			return

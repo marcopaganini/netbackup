@@ -5,11 +5,10 @@
 package transports
 
 import (
+	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"os"
 	"regexp"
 	"testing"
-	"testing/iotest"
 )
 
 const (
@@ -24,8 +23,10 @@ const (
 func rdiffBackupTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mustError bool) {
 	fakeExecute := NewFakeExecute()
 
+	log := logger.New("")
+
 	// Create a new rdiff-backup object with our fakeExecute and a sinking outLogWriter.
-	rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, iotest.TruncateWriter(os.Stderr, 0), dryRun)
+	rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, log, dryRun)
 	if err != nil {
 		if mustError {
 			return

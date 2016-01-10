@@ -12,7 +12,6 @@ import (
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -28,17 +27,11 @@ type RdiffBackupTransport struct {
 }
 
 // NewRdiffBackupTransport creates a new Transport object for rdiff-backup.
-func NewRdiffBackupTransport(
-	config *config.Config,
-	ex Executor,
-	outLog io.Writer,
-	dryRun bool) (*RdiffBackupTransport, error) {
-
+func NewRdiffBackupTransport(config *config.Config, ex Executor, log *logger.Logger, dryRun bool) (*RdiffBackupTransport, error) {
 	t := &RdiffBackupTransport{}
 	t.config = config
+	t.log = log
 	t.dryRun = dryRun
-	t.outLog = outLog
-	t.log = logger.New("")
 
 	// If execute object is nil, create a new one
 	t.execute = ex
@@ -50,8 +43,6 @@ func NewRdiffBackupTransport(
 	if err := t.checkConfig(); err != nil {
 		return nil, err
 	}
-
-	// Create a new logger with our verbosity settings
 	return t, nil
 }
 
@@ -101,21 +92,19 @@ func (r *RdiffBackupTransport) runCmd(cmd []string) error {
 	// a substring in our spam list.
 	p := func(buf string) error {
 		if !matchSlice(spam, buf) {
-			_, err := fmt.Fprintln(r.outLog, buf)
-			return err
+			r.log.Verboseln(3, buf)
+			return nil
 		}
 		return nil
 	}
 
-	// Log
 	r.log.Verbosef(2, "*** Command = %q", strings.Join(cmd, " "))
-	fmt.Fprintf(r.outLog, "*** Command: %q\n", strings.Join(cmd, " "))
 
 	// Run
 	r.execute.SetStdout(p)
 	r.execute.SetStderr(p)
 	err := r.execute.Exec(cmd)
-	fmt.Fprintf(r.outLog, "*** Command returned: %v ***\n", err)
+	r.log.Verbosef(2, "*** Command returned: %v ***\n", err)
 	return err
 }
 
@@ -171,7 +160,7 @@ func (r *RdiffBackupTransport) Run() error {
 	cmd = append(cmd, src)
 	cmd = append(cmd, dst)
 
-	fmt.Fprintf(r.outLog, "*** Starting netbackup: %s\n", time.Now())
+	r.log.Verbosef(1, "*** Starting netbackup: %s\n", time.Now())
 
 	// Execute the command
 	err = r.runCmd(cmd)
@@ -187,7 +176,7 @@ func (r *RdiffBackupTransport) Run() error {
 			"--force",
 			dst}
 		r.log.Verbosef(2, "rdiff-backup command = %q", strings.Join(cmd, " "))
-		fmt.Fprintf(r.outLog, "*** Starting netbackup: %s\n", time.Now())
+		r.log.Verbosef(1, "*** Starting removal of old versions: %s\n", time.Now())
 		return r.runCmd(cmd)
 	}
 

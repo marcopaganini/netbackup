@@ -11,7 +11,6 @@ import (
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -30,7 +29,6 @@ type Executor interface {
 type Transport struct {
 	config      *config.Config
 	execute     Executor
-	outLog      io.Writer
 	log         *logger.Logger
 	dryRun      bool
 	excludeFile string
@@ -142,14 +140,14 @@ func (t *Transport) runCmd(cmd []string) error {
 	var err error
 	err = nil
 	if !t.dryRun {
-		fmt.Fprintf(t.outLog, "*** Starting netbackup: %s ***\n", time.Now())
-		fmt.Fprintf(t.outLog, "*** Command: %s ***\n", strings.Join(cmd, " "))
+		t.log.Verbosef(2, "*** Command: %s ***\n", strings.Join(cmd, " "))
+		t.log.Verbosef(1, "*** Starting netbackup: %s ***\n", time.Now())
 
 		// Run
-		t.execute.SetStdout(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
-		t.execute.SetStderr(func(buf string) error { _, err := fmt.Fprintln(t.outLog, buf); return err })
+		t.execute.SetStdout(func(buf string) error { t.log.Verboseln(3, buf); return nil })
+		t.execute.SetStderr(func(buf string) error { t.log.Verboseln(3, buf); return nil })
 		err = t.execute.Exec(cmd)
-		fmt.Fprintf(t.outLog, "*** Command returned: %v ***\n", err)
+		t.log.Verbosef(1, "*** Command returned: %v ***\n", err)
 	}
 	return err
 }
