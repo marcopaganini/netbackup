@@ -275,9 +275,6 @@ func main() {
 	if verbose > 0 {
 		log.SetVerboseLevel(verbose)
 	}
-	if opt.dryrun {
-		log.Verboseln(2, "Warning: Dry-Run mode. Won't execute any commands.")
-	}
 
 	// Open and parse config file
 	cfg, err := os.Open(opt.config)
@@ -303,6 +300,10 @@ func main() {
 
 	// Configure log to log everything to stderr and outLog
 	log.SetMirrorOutput(outLog)
+
+	if opt.dryrun {
+		log.Verboseln(1, "Warning: Dry-Run mode. Won't execute any commands.")
+	}
 
 	// Create new Backup and execute.
 	b := NewBackup(config, log, opt.dryrun)
