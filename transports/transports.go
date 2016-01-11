@@ -14,21 +14,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 )
-
-// Executor defines the interface used to run commands.
-type Executor interface {
-	SetStdout(execute.CallbackFunc)
-	SetStderr(execute.CallbackFunc)
-	Exec([]string) error
-}
 
 // Transport represents all transports
 type Transport struct {
 	config      *config.Config
-	execute     Executor
+	execute     execute.Executor
 	log         *logger.Logger
 	dryRun      bool
 	excludeFile string
@@ -83,7 +74,7 @@ func (t *Transport) createExcludeFile(paths []string) error {
 	if err != nil {
 		return err
 	}
-	t.log.Verbosef(3, "Exclude file: %q", fname)
+	t.log.Verbosef(3, "Exclude file: %q\n", fname)
 	t.excludeFile = fname
 	return nil
 }
@@ -98,7 +89,7 @@ func (t *Transport) createIncludeFile(paths []string) error {
 	if err != nil {
 		return err
 	}
-	t.log.Verbosef(3, "Include file: %q", fname)
+	t.log.Verbosef(3, "Include file: %q\n", fname)
 	t.includeFile = fname
 	return nil
 }
@@ -133,21 +124,4 @@ func (t *Transport) buildDest() string {
 // Transport structure.
 func (t *Transport) Run() error {
 	return fmt.Errorf("Internal error: Attempted to execute generic Run method.")
-}
-
-// runCmd executes the command.
-func (t *Transport) runCmd(cmd []string) error {
-	var err error
-	err = nil
-	if !t.dryRun {
-		t.log.Verbosef(2, "*** Command: %s ***\n", strings.Join(cmd, " "))
-		t.log.Verbosef(1, "*** Starting netbackup: %s ***\n", time.Now())
-
-		// Run
-		t.execute.SetStdout(func(buf string) error { t.log.Verboseln(3, buf); return nil })
-		t.execute.SetStderr(func(buf string) error { t.log.Verboseln(3, buf); return nil })
-		err = t.execute.Exec(cmd)
-		t.log.Verbosef(1, "*** Command returned: %v ***\n", err)
-	}
-	return err
 }

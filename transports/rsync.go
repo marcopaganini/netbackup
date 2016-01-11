@@ -25,7 +25,7 @@ type RsyncTransport struct {
 }
 
 // NewRsyncTransport creates a new Transport object for rsync.
-func NewRsyncTransport(config *config.Config, ex Executor, log *logger.Logger, dryRun bool) (*RsyncTransport, error) {
+func NewRsyncTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*RsyncTransport, error) {
 	t := &RsyncTransport{}
 	t.config = config
 	t.log = log
@@ -95,8 +95,11 @@ func (r *RsyncTransport) Run() error {
 	cmd = append(cmd, r.buildSource())
 	cmd = append(cmd, r.buildDest())
 
-	r.log.Verbosef(2, "rsync command = %q", strings.Join(cmd, " "))
+	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 
 	// Execute the command
-	return r.runCmd(cmd)
+	if !r.dryRun {
+		return execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
+	}
+	return nil
 }

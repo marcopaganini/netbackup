@@ -14,7 +14,6 @@ import (
 	"github.com/marcopaganini/netbackup/execute"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
@@ -27,7 +26,7 @@ type RdiffBackupTransport struct {
 }
 
 // NewRdiffBackupTransport creates a new Transport object for rdiff-backup.
-func NewRdiffBackupTransport(config *config.Config, ex Executor, log *logger.Logger, dryRun bool) (*RdiffBackupTransport, error) {
+func NewRdiffBackupTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*RdiffBackupTransport, error) {
 	t := &RdiffBackupTransport{}
 	t.config = config
 	t.log = log
@@ -59,53 +58,6 @@ func (r *RdiffBackupTransport) checkConfig() error {
 		return fmt.Errorf("Config error: Cannot have source & dest host set")
 	}
 	return nil
-}
-
-// matchSlice returns true if the string s matches any substring within
-// the passed slice, false otherwise.
-func matchSlice(slice []string, s string) bool {
-	for _, v := range slice {
-		if strings.Contains(s, v) {
-			return true
-		}
-	}
-	return false
-}
-
-// runCmd runs rdiff-backup and exclude a number of spammy messages from
-// stdout/err.  This is the rdiff-specific version of runCmd.
-func (r *RdiffBackupTransport) runCmd(cmd []string) error {
-	if r.dryRun {
-		return nil
-	}
-
-	spam := []string{
-		"POSIX ACLs not supported",
-		"Unable to import win32security module",
-		"not supported by filesystem at",
-		"escape_dos_devices not required by filesystem at",
-		"Reading globbing filelist",
-		"Updated mirror temp file.* does not match source",
-		"/.gvfs"}
-
-	// Print stdout and stderr excluding any messages that match
-	// a substring in our spam list.
-	p := func(buf string) error {
-		if !matchSlice(spam, buf) {
-			r.log.Verboseln(3, buf)
-			return nil
-		}
-		return nil
-	}
-
-	r.log.Verbosef(2, "*** Command = %q", strings.Join(cmd, " "))
-
-	// Run
-	r.execute.SetStdout(p)
-	r.execute.SetStderr(p)
-	err := r.execute.Exec(cmd)
-	r.log.Verbosef(2, "*** Command returned: %v ***\n", err)
-	return err
 }
 
 // Run forms the command name and executes it, saving the output to the log
@@ -160,12 +112,24 @@ func (r *RdiffBackupTransport) Run() error {
 	cmd = append(cmd, src)
 	cmd = append(cmd, dst)
 
-	r.log.Verbosef(1, "*** Starting netbackup: %s\n", time.Now())
-
 	// Execute the command
-	err = r.runCmd(cmd)
-	if err != nil {
-		return err
+	spam := []string{
+		"POSIX ACLs not supported",
+		"Unable to import win32security module",
+		"not supported by filesystem at",
+		"escape_dos_devices not required by filesystem at",
+		"Reading globbing filelist",
+		"Updated mirror temp file.* does not match source",
+		"/.gvfs"}
+
+	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
+
+	if !r.dryRun {
+		// Run
+		err = execute.RunCommand("RDIFF-BACKUP", cmd, r.log, r.execute, spam, spam)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Remove older files, if requested.
@@ -175,9 +139,11 @@ func (r *RdiffBackupTransport) Run() error {
 			fmt.Sprintf("--remove-older-than=%dD", r.config.RdiffBackupMaxAge),
 			"--force",
 			dst}
-		r.log.Verbosef(2, "rdiff-backup command = %q", strings.Join(cmd, " "))
-		r.log.Verbosef(1, "*** Starting removal of old versions: %s\n", time.Now())
-		return r.runCmd(cmd)
+
+		r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
+		if !r.dryRun {
+			return execute.RunCommand("RDIFF-BACKUP", cmd, r.log, r.execute, spam, spam)
+		}
 	}
 
 	return nil

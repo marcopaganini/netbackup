@@ -69,8 +69,8 @@ func (b *Backup) mountDev() (string, error) {
 
 	// We use the mount command instead of the mount syscall as it makes
 	// simpler to specify defaults in /etc/fstab.
-	cmd := mountCmd + " " + b.config.DestDev + " " + tmpdir
-	if err := runCommand("MOUNT", cmd, nil); err != nil {
+	cmd := []string{mountCmd, b.config.DestDev, tmpdir}
+	if err := execute.Run("MOUNT", cmd, b.log); err != nil {
 		return "", err
 	}
 
@@ -79,8 +79,8 @@ func (b *Backup) mountDev() (string, error) {
 
 // umountDev dismounts the destination device specified in config.DestDev.
 func (b *Backup) umountDev() error {
-	cmd := umountCmd + " " + b.config.DestDev
-	return runCommand("UMOUNT", cmd, nil)
+	cmd := []string{umountCmd, b.config.DestDev}
+	return execute.Run("UMOUNT", cmd, b.log)
 }
 
 // openLuks opens the luks destination device into a temporary /dev/mapper
@@ -96,12 +96,15 @@ func (b *Backup) openLuks() (string, error) {
 	}
 
 	// cryptsetup LuksOpen
-	cmd := cryptSetupCmd
+	cmd := []string{cryptSetupCmd}
 	if b.config.LuksKeyFile != "" {
-		cmd += " --key-file " + b.config.LuksKeyFile
+		cmd = append(cmd, "--key-file "+b.config.LuksKeyFile)
 	}
-	cmd += " luksOpen " + b.config.LuksDestDev + " " + devname
-	if err := runCommand("LUKS_OPEN", cmd, nil); err != nil {
+	cmd = append(cmd, "luksOpen")
+	cmd = append(cmd, b.config.LuksDestDev)
+	cmd = append(cmd, devname)
+
+	if err := execute.Run("LUKS_OPEN", cmd, b.log); err != nil {
 		return "", err
 	}
 
@@ -111,8 +114,8 @@ func (b *Backup) openLuks() (string, error) {
 // closeLuks closes the current destination device.
 func (b *Backup) closeLuks() error {
 	// cryptsetup luksClose needs the /dev/mapper device name.
-	cmd := cryptSetupCmd + " luksClose " + b.config.DestDev
-	return runCommand("LUKS_CLOSE", cmd, nil)
+	cmd := []string{cryptSetupCmd, "luksClose", b.config.DestDev}
+	return execute.Run("LUKS_CLOSE", cmd, b.log)
 }
 
 // cleanFilesystem runs fsck to make sure the filesystem under config.dest_dev is
@@ -121,13 +124,13 @@ func (b *Backup) closeLuks() error {
 // filesystems that support tunefs.
 func (b *Backup) cleanFilesystem() error {
 	// fsck (read-only check)
-	cmd := fsckCmd + " -n " + b.config.DestDev
-	if err := runCommand("FS_CLEANUP", cmd, nil); err != nil {
+	cmd := []string{fsckCmd, "-n", b.config.DestDev}
+	if err := execute.Run("FS_CLEANUP", cmd, b.log); err != nil {
 		return fmt.Errorf("error running %q: %v", cmd, err)
 	}
 	// Tunefs
-	cmd = tunefsCmd + " -C 0 -T now " + b.config.DestDev
-	return runCommand("FS_CLEANUP", cmd, nil)
+	cmd = []string{tunefsCmd, "-C", "0", "-T", "now", b.config.DestDev}
+	return execute.Run("FS_CLEANUP", cmd, b.log)
 }
 
 // Run executes the backup according to the config file and options.
@@ -199,7 +202,7 @@ func (b *Backup) Run() error {
 
 	// Execute pre-commands, if any.
 	if b.config.PreCommand != "" && !b.dryRun {
-		if err := runCommand("PRE", b.config.PreCommand, nil); err != nil {
+		if err := execute.Run("PRE", execute.WithShell(b.config.PreCommand), b.log); err != nil {
 			return fmt.Errorf("Error running pre-command: %v", err)
 		}
 	}
@@ -211,7 +214,7 @@ func (b *Backup) Run() error {
 
 	// Execute post-commands, if any.
 	if b.config.PostCommand != "" && !b.dryRun {
-		if err := runCommand("POST", b.config.PostCommand, nil); err != nil {
+		if err := execute.Run("POST", execute.WithShell(b.config.PostCommand), b.log); err != nil {
 			return fmt.Errorf("Error running post-command (possible backup failure): %v", err)
 		}
 	}
@@ -228,36 +231,6 @@ func usage(err error) {
 	fmt.Fprintf(os.Stderr, "Usage%s:\n", os.Args[0])
 	flag.PrintDefaults()
 	os.Exit(2)
-}
-
-// runCommand executes the given command using the shell. A prefix will
-// be used to log the commands to the output log. Returns error.
-func runCommand(prefix string, cmd string, ex *execute.Execute) error {
-	log.Verbosef(1, "%s Command: %q", prefix, cmd)
-
-	// Create a new execute object, if current is nil
-	e := ex
-	if e == nil {
-		e = execute.New()
-	}
-
-	// All streams copied to output log with "PRE:" as a prefix.
-	e.SetStdout(func(buf string) error { log.Verbosef(3, "%s(stdout): %s\n", prefix, buf); return nil })
-	e.SetStderr(func(buf string) error { log.Verbosef(3, "%s(stderr): %s\n", prefix, buf); return nil })
-
-	// Run using shell
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/sh"
-	}
-	err := e.Exec([]string{shell, "-c", "--", cmd})
-	if err != nil {
-		errmsg := fmt.Sprintf("%s returned: %v", prefix, err)
-		log.Verbosef(1, "*** %s\n", errmsg)
-		return fmt.Errorf(errmsg)
-	}
-	log.Verbosef(1, "%s returned: OK\n", prefix)
-	return nil
 }
 
 // logPath constructs the name for the output log using the the name and
@@ -303,7 +276,7 @@ func main() {
 		log.SetVerboseLevel(verbose)
 	}
 	if opt.dryrun {
-		log.Verbosef(2, "Warning: Dry-Run mode. Won't execute any commands.")
+		log.Verboseln(2, "Warning: Dry-Run mode. Won't execute any commands.")
 	}
 
 	// Open and parse config file

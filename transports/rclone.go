@@ -25,7 +25,7 @@ type RcloneTransport struct {
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(config *config.Config, ex Executor, log *logger.Logger, dryRun bool) (*RcloneTransport, error) {
+func NewRcloneTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{}
 	t.config = config
 	t.log = log
@@ -80,8 +80,11 @@ func (r *RcloneTransport) Run() error {
 	cmd = append(cmd, r.buildSource())
 	cmd = append(cmd, r.buildDest())
 
-	r.log.Verbosef(2, "rclone command = %q", strings.Join(cmd, " "))
+	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 
 	// Execute the command
-	return r.runCmd(cmd)
+	if !r.dryRun {
+		return execute.RunCommand("RCLONE", cmd, r.log, r.execute, nil, nil)
+	}
+	return nil
 }
