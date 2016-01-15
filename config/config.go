@@ -13,6 +13,10 @@ import (
 	"strings"
 )
 
+const (
+	defaultLogDir = "/var/log/netbackup"
+)
+
 // Config represents a configuration file on disk.  The fields in this struct
 // *must* be tagged so we can correctly map them to the fields in the config
 // file and detect extraneous configuration items.
@@ -30,7 +34,8 @@ type Config struct {
 	Transport   string   `ini:"transport"`
 	Exclude     []string `ini:"exclude" delim:" "`
 	Include     []string `ini:"include" delim:" "`
-	Logfile     string   `ini:"logfile"`
+	LogDir      string   `ini:"log_dir"`
+	Logfile     string   `ini:"log_file"`
 	// LUKS specific options
 	LuksDestDev string `ini:"luks_dest_dev"`
 	LuksKeyFile string `ini:"luks_keyfile"`
@@ -77,6 +82,11 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("Error parsing config: %v", err)
 	}
 
+	// Set defaults
+	if config.Logfile == "" && config.LogDir == "" {
+		config.LogDir = defaultLogDir
+	}
+
 	// Count the number of destinations set
 	ndest := 0
 	ndev := 0
@@ -99,6 +109,8 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("source_dir cannot be empty")
 	case config.Transport == "":
 		return nil, fmt.Errorf("transport cannot be empty")
+	case config.Logfile != "" && config.LogDir != "":
+		return nil, fmt.Errorf("either log_dir or log_file can be set")
 	// Make sure destination combos are valid.
 	case (ndest + ndev) == 0:
 		return nil, fmt.Errorf("no destination set")

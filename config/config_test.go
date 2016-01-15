@@ -71,7 +71,7 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 		}
 		r := strings.NewReader(s)
 		if _, err := ParseConfig(r); err == nil {
-			t.Fatalf("ParseConfig succeeded when key %q is missing; want non-nil error:", miss, err)
+			t.Fatalf("ParseConfig succeeded when key %q is missing; want non-nil error", miss)
 		}
 	}
 }
@@ -108,6 +108,59 @@ func TestDestOptions(t *testing.T) {
 	r = strings.NewReader(baseConfig + "dest_dir=/dst\nfs_cleanup=yes")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
+	}
+}
+
+// Make sure that improper Logging combinations produce errors and that
+// defaults are assigned to LogDir if it's empty.
+func TestLoggingOptions(t *testing.T) {
+	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst\n"
+	logDir := "/logdir"
+	logFile := "/logfile"
+
+	// LogDir and no Logfile
+	r := strings.NewReader(baseConfig + "log_dir=" + logDir)
+	cfg, err := ParseConfig(r)
+	if err != nil {
+		t.Fatalf("ParseConfig failed: %v", err)
+	}
+	if cfg.LogDir != logDir {
+		t.Errorf("log_dir should be %s; is %s", logDir, cfg.LogDir)
+	}
+	if cfg.Logfile != "" {
+		t.Errorf("log_dir should be empty; is %s", cfg.Logfile)
+	}
+
+	// Logfile and no LogDir
+	r = strings.NewReader(baseConfig + "log_file=" + logFile)
+	cfg, err = ParseConfig(r)
+	if err != nil {
+		t.Fatalf("ParseConfig failed: %v", err)
+	}
+	if cfg.Logfile != logFile {
+		t.Errorf("log_file should be %s; is %s", logFile, cfg.Logfile)
+	}
+	if cfg.LogDir != "" {
+		t.Errorf("log_dir should be empty; is %s", cfg.LogDir)
+	}
+
+	// Blank Logfile & Blank LogDir == default LogDir
+	r = strings.NewReader(baseConfig)
+	cfg, err = ParseConfig(r)
+	if err != nil {
+		t.Fatalf("ParseConfig failed: %v", err)
+	}
+	if cfg.LogDir != defaultLogDir {
+		t.Errorf("log_dir should be %s; is %s", defaultLogDir, cfg.LogDir)
+	}
+	if cfg.Logfile != "" {
+		t.Errorf("log_file should be empty; is %s", cfg.Logfile)
+	}
+
+	// Logfile and LogDir should result in error
+	r = strings.NewReader(baseConfig + "log_file=" + logFile + "\nlog_dir=" + logDir)
+	if _, err := ParseConfig(r); err == nil {
+		t.Errorf("ParseConfig succeeded when keys log_dir and log_file are set; want non-nil error")
 	}
 }
 

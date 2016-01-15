@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	defaultLogDir = "/tmp/log/netbackup"
-	devMapperDir  = "/dev/mapper"
+	devMapperDir = "/dev/mapper"
 
 	// Default permissions for log directories and files.
 	// The current umask will apply to these.
@@ -290,7 +289,7 @@ func main() {
 	// or create a "standard" name using the backup name and date.
 	logFilename := config.Logfile
 	if logFilename == "" {
-		logFilename = logPath(config.Name, defaultLogDir)
+		logFilename = logPath(config.Name, config.LogDir)
 	}
 	outLog, err := logOpen(logFilename)
 	if err != nil {
