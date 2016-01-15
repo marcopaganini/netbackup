@@ -7,6 +7,7 @@
 package transports
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
@@ -43,6 +44,23 @@ func writeList(prefix string, patterns []string) (string, error) {
 	return w.Name(), nil
 }
 
+// displayFile opens the specified file and output all lines in it using the
+// log object.
+func displayFile(log *logger.Logger, fname string) error {
+	r, err := os.Open(fname)
+	if err != nil {
+		return fmt.Errorf("error opening %q: %v", fname, err)
+	}
+	defer r.Close()
+
+	log.Verbosef(3, "Contents of %q:\n", fname)
+	s := bufio.NewScanner(r)
+	for s.Scan() {
+		log.Verboseln(3, s.Text())
+	}
+	return nil
+}
+
 // absPaths returns a slice of absolute paths formed by prefixing all paths in
 // the slice of paths with the base path.
 func absPaths(base string, paths []string) []string {
@@ -74,8 +92,13 @@ func (t *Transport) createExcludeFile(paths []string) error {
 	if err != nil {
 		return err
 	}
-	t.log.Verbosef(3, "Exclude file: %q\n", fname)
+	t.log.Verbosef(2, "Exclude file: %q\n", fname)
+	// Display file contents to log if dryRun mode
+	if t.dryRun {
+		displayFile(t.log, fname)
+	}
 	t.excludeFile = fname
+
 	return nil
 }
 
@@ -89,7 +112,11 @@ func (t *Transport) createIncludeFile(paths []string) error {
 	if err != nil {
 		return err
 	}
-	t.log.Verbosef(3, "Include file: %q\n", fname)
+	t.log.Verbosef(2, "Include file: %q\n", fname)
+	// Display file contents to log if dryRun mode
+	if t.dryRun {
+		displayFile(t.log, fname)
+	}
 	t.includeFile = fname
 	return nil
 }
