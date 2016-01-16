@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 )
 
 const (
@@ -63,7 +64,15 @@ func parseFlags() error {
 
 	// Config is mandatory
 	if opt.config == "" {
+		usage()
 		return fmt.Errorf("Configuration file must be specified with --config=config_filename")
 	}
 	return nil
+}
+
+// returns a formatted error message including the program's usage.
+func usage() {
+	fmt.Printf("Usage %s:\n", os.Args[0])
+	flag.PrintDefaults()
+	fmt.Println("")
 }

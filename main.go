@@ -7,7 +7,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -221,17 +220,6 @@ func (b *Backup) Run() error {
 	return nil
 }
 
-// usage prints an error message and program usage to stderr, exiting after
-// that.
-func usage(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n\n", err)
-	}
-	fmt.Fprintf(os.Stderr, "Usage%s:\n", os.Args[0])
-	flag.PrintDefaults()
-	os.Exit(2)
-}
-
 // logPath constructs the name for the output log using the the name and
 // the current system date.
 func logPath(name string, logDir string) string {
@@ -266,7 +254,7 @@ func main() {
 
 	// Parse command line flags and read config file.
 	if err := parseFlags(); err != nil {
-		log.Fatalf("Command line error: %v", err)
+		log.Fatalf("Error: %v\n", err)
 	}
 
 	// Set verbose level
