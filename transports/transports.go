@@ -14,7 +14,6 @@ import (
 	"github.com/marcopaganini/netbackup/execute"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
 // Transport represents all transports
@@ -59,16 +58,6 @@ func displayFile(log *logger.Logger, fname string) error {
 		log.Verboseln(3, s.Text())
 	}
 	return nil
-}
-
-// absPaths returns a slice of absolute paths formed by prefixing all paths in
-// the slice of paths with the base path.
-func absPaths(base string, paths []string) []string {
-	p := make([]string, len(paths))
-	for ix, v := range paths {
-		p[ix] = filepath.Join(base, v)
-	}
-	return p
 }
 
 // checkConfig performs basic checks in the configuration.

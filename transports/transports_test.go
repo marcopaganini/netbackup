@@ -57,16 +57,3 @@ func TestWriteList(t *testing.T) {
 		t.Fatalf("generated list file contents should match\n[%s]\n\nbut is\n\n[%s]", expected, string(contents))
 	}
 }
-
-// Test absPaths
-func TestAbsPaths(t *testing.T) {
-	base := "/foo/bar"
-	paths := []string{"aaa", "bbb", "ccc"}
-	expected := []string{base + "/aaa", base + "/bbb", base + "/ccc"}
-
-	for ix, v := range absPaths(base, paths) {
-		if v != expected[ix] {
-			t.Errorf("absPaths failed at index %d; expected %q, got %q", ix, expected[ix], v)
-		}
-	}
-}

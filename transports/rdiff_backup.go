@@ -68,13 +68,13 @@ func (r *RdiffBackupTransport) checkConfig() error {
 // to stderr.
 func (r *RdiffBackupTransport) Run() error {
 	// Create exclude/include lists, if needed
-	err := r.createExcludeFile(absPaths(r.config.SourceDir, r.config.Exclude))
+	err := r.createExcludeFile(r.config.Exclude)
 	if err != nil {
 		return err
 	}
 	defer os.Remove(r.excludeFile)
 
-	err = r.createIncludeFile(absPaths(r.config.SourceDir, r.config.Include))
+	err = r.createIncludeFile(r.config.Include)
 	if err != nil {
 		return err
 	}
