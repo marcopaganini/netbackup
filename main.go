@@ -266,11 +266,11 @@ func main() {
 	// Open and parse config file
 	cfg, err := os.Open(opt.config)
 	if err != nil {
-		log.Fatalf("Unable to open config file: %v", err)
+		log.Fatalf("Unable to open config file: %v\n", err)
 	}
 	config, err := config.ParseConfig(cfg)
 	if err != nil {
-		log.Fatalf("Configuration error in %q: %v", opt.config, err)
+		log.Fatalf("Configuration error in %q: %v\n", opt.config, err)
 	}
 
 	// Create output log. Use the name specified in the config, if any,
@@ -281,7 +281,7 @@ func main() {
 	}
 	outLog, err := logOpen(logFilename)
 	if err != nil {
-		log.Fatalf("Unable to open/create logfile: %v", err)
+		log.Fatalf("Unable to open/create logfile: %v\n", err)
 	}
 	defer outLog.Close()
 
