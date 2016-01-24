@@ -120,10 +120,10 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported")
 	case ndev == 0 && config.FSCleanup:
 		return nil, fmt.Errorf("fs_cleanup can only be used when destination is a filesystem")
-	// All destinations must be an absolute path
-	case !strings.HasPrefix(config.SourceDir, "/"):
+	// Paths must be absolute if we're doing a local backup (no src or dst hosts.)
+	case config.SourceHost == "" && !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")
-	case config.DestDir != "" && !strings.HasPrefix(config.DestDir, "/"):
+	case config.DestHost == "" && config.DestDir != "" && !strings.HasPrefix(config.DestDir, "/"):
 		return nil, fmt.Errorf("dest_dir must be an absolute path")
 	case config.DestDev != "" && !strings.HasPrefix(config.DestDev, "/"):
 		return nil, fmt.Errorf("dest_dev must be an absolute path")

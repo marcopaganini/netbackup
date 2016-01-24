@@ -165,19 +165,34 @@ func TestLoggingOptions(t *testing.T) {
 }
 
 // Test that relative paths for source or destination dir result in error.
+// if SourceHost and DestHost are not set (local backup), respectively.
 func TestRelativePaths(t *testing.T) {
-	// Relative source_dir
-	cstr := "name=foo\nsource_dir=a\ndest_dir=/btransport=transp\ninvalidkey=foo"
+	// Relative source_dir, local backup (FAIL)
+	cstr := "name=foo\nsource_dir=a\ndest_dir=/b\ntransport=transp"
 	r := strings.NewReader(cstr)
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when source_dir is a relative path; want non-nil error: %v", err)
 	}
 
-	// Relative dest_dir
-	cstr = "name=foo\nsource_dir=/a\ndest_dir=btransport=transp\ninvalidkey=foo"
+	// Relative dest_dir, local backup (FAIL)
+	cstr = "name=foo\nsource_dir=/a\ndest_dir=b\ntransport=transp"
 	r = strings.NewReader(cstr)
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when dest_dir is a relative path; want non-nil error: %v", err)
+	}
+
+	// Relative source_dir, sourc_host set (OK)
+	cstr = "name=foo\nsource_dir=a\nsource_host=foo\ndest_dir=/b\ntransport=transp"
+	r = strings.NewReader(cstr)
+	if _, err := ParseConfig(r); err != nil {
+		t.Fatalf("ParseConfig failed when source_dir is a relative path and source_host is set: %v", err)
+	}
+
+	// Relative dest_dir, local backup
+	cstr = "name=foo\nsource_dir=/a\ndest_dir=b\ndest_host=foo\ntransport=transp"
+	r = strings.NewReader(cstr)
+	if _, err := ParseConfig(r); err != nil {
+		t.Fatalf("ParseConfig failed when dest_dir is a relative path and dest_host is set: %v", err)
 	}
 }
 
