@@ -94,7 +94,9 @@ func (r *RsyncTransport) Run() error {
 			cmd = append(cmd, v)
 		}
 	}
-	cmd = append(cmd, r.buildSource())
+	// In rsync, the source needs to ends with a slash or the
+	// source directory will be created inside the destination.
+	cmd = append(cmd, r.buildSource()+"/")
 	cmd = append(cmd, r.buildDest())
 
 	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))

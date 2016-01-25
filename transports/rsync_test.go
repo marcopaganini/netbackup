@@ -69,7 +69,7 @@ func TestRsyncSameMachine(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" /tmp/a /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" /tmp/a/ /tmp/b", false, false)
 }
 
 // Local source, remote destination.
@@ -82,7 +82,7 @@ func TestRsyncLocalSourceRemoteDest(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" /tmp/a desthost:/tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" /tmp/a/ desthost:/tmp/b", false, false)
 }
 
 // Remote source, local destination.
@@ -95,7 +95,7 @@ func TestRsyncRemoteSourceLocalDest(t *testing.T) {
 		Transport:  "rsync",
 		Logfile:    "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" srchost:/tmp/a /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" srchost:/tmp/a/ /tmp/b", false, false)
 }
 
 // Remote source, Remote destination (server side copy)not supported by rsync.
@@ -122,7 +122,7 @@ func TestRsyncExcludeListOnly(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" --exclude=[^ ]+ --delete-excluded /tmp/a /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" --exclude=[^ ]+ --delete-excluded /tmp/a/ /tmp/b", false, false)
 }
 
 // Include list only.
@@ -135,7 +135,7 @@ func TestRsyncIncludeListOnly(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" --include=[^ ]+ /tmp/a /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" --include=[^ ]+ /tmp/a/ /tmp/b", false, false)
 }
 
 // Include & Exclude lists.
@@ -149,7 +149,7 @@ func TestRsyncIncludeAndExclude(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" --exclude=[^ ]+ --delete-excluded --include=[^ ]+ /tmp/a /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" --exclude=[^ ]+ --delete-excluded --include=[^ ]+ /tmp/a/ /tmp/b", false, false)
 }
 
 // Test that an empty source dir results in error.
