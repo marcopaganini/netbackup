@@ -118,7 +118,7 @@ func TestRcloneExcludeListOnly(t *testing.T) {
 		Transport: "rclone",
 		Logfile:   "/dev/null",
 	}
-	rcloneTest(t, cfg, "rclone sync -v --exclude=[^ ]+ /tmp/a /tmp/b", false, false)
+	rcloneTest(t, cfg, "rclone sync -v --exclude-from=[^ ]+ /tmp/a /tmp/b", false, false)
 }
 
 // Include list only
@@ -131,7 +131,7 @@ func TestRcloneIncludeListOnly(t *testing.T) {
 		Transport: "rclone",
 		Logfile:   "/dev/null",
 	}
-	rcloneTest(t, cfg, "rclone sync -v --include=[^ ]+ /tmp/a /tmp/b", false, false)
+	rcloneTest(t, cfg, "rclone sync -v --include-from=[^ ]+ /tmp/a /tmp/b", false, false)
 }
 
 // Include & Exclude lists
@@ -145,7 +145,7 @@ func TestRcloneIncludeAndExclude(t *testing.T) {
 		Transport: "rclone",
 		Logfile:   "/dev/null",
 	}
-	rcloneTest(t, cfg, "rclone sync -v --exclude=[^ ]+ --include=[^ ]+ /tmp/a /tmp/b", false, false)
+	rcloneTest(t, cfg, "rclone sync -v --exclude-from=[^ ]+ --include-from=[^ ]+ /tmp/a /tmp/b", false, false)
 }
 
 // Test that an empty source dir results in an error
