@@ -27,7 +27,7 @@ type Config struct {
 	DestDev     string   `ini:"dest_dev"`
 	SourceDir   string   `ini:"source_dir"`
 	DestDir     string   `ini:"dest_dir"`
-	ExtraArgs   string   `ini:"extra_args"`
+	ExtraArgs   []string `ini:"extra_args" delim:" "`
 	FSCleanup   bool     `ini:"fs_cleanup"`
 	PreCommand  string   `ini:"pre_command"`
 	PostCommand string   `ini:"post_command"`
