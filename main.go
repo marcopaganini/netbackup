@@ -98,7 +98,7 @@ func (b *Backup) openLuks() (string, error) {
 	// cryptsetup LuksOpen
 	cmd := []string{cryptSetupCmd}
 	if b.config.LuksKeyFile != "" {
-		cmd = append(cmd, "--key-file "+b.config.LuksKeyFile)
+		cmd = append(cmd, "--key-file="+b.config.LuksKeyFile)
 	}
 	cmd = append(cmd, "luksOpen")
 	cmd = append(cmd, b.config.LuksDestDev)
