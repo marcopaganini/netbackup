@@ -139,6 +139,22 @@ func (b *Backup) Run() error {
 		Run() error
 	}
 
+	// If we're running in dry-run mode, we set dummy values for DestDev if
+	// LuksDestDev is present, and for DestDir if DestDev is present. This hack
+	// is necessary because these values won't be set to the appropriate values
+	// in dry-run mode (since we don't want to open the luks destination in
+	// that case) and the transports won't be able to show a full command line
+	// in that case.
+
+	if b.dryRun {
+		if b.config.LuksDestDev != "" {
+			b.config.DestDev = "dummy_dest_dev"
+		}
+		if b.config.DestDev != "" {
+			b.config.DestDir = "dummy_dest_dir"
+		}
+	}
+
 	if !b.dryRun {
 		// Make sure sourcedir is a mountpoint, if requested. This should
 		// reduce the risk of backing up an empty (unmounted) source on top of
