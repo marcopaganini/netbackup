@@ -112,6 +112,18 @@ func TestRsyncRemoteSourceRemoteDest(t *testing.T) {
 	rsyncTest(t, cfg, "", false, true)
 }
 
+// Sources ending in a slash should not have another slash added.
+func TestRsyncDoubleSlash(t *testing.T) {
+	cfg := &config.Config{
+		Name:      "fake",
+		SourceDir: "/",
+		DestDir:   "/tmp/b",
+		Transport: "rsync",
+		Logfile:   "/dev/null",
+	}
+	rsyncTest(t, cfg, rsyncTestCmd+" / /tmp/b", false, false)
+}
+
 // Exclude list only.
 func TestRsyncExcludeListOnly(t *testing.T) {
 	cfg := &config.Config{
