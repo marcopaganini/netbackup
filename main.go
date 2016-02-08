@@ -240,7 +240,7 @@ func (b *Backup) Run() error {
 func logPath(name string, logDir string) string {
 	ymd := time.Now().Format("2006-01-02")
 	dir := filepath.Join(logDir, name)
-	return filepath.Join(dir, progName+"-"+name+"-"+ymd+".log")
+	return filepath.Join(dir, progName+"-"+name+"."+ymd+".log")
 }
 
 // logOpen opens (for append) or creates (if needed) the specified file.
