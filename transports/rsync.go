@@ -83,11 +83,11 @@ func (r *RsyncTransport) Run() error {
 	cmd := []string{rsyncCmd, "-av", "--delete", "--numeric-ids"}
 
 	if r.excludeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--exclude=%s", r.excludeFile))
+		cmd = append(cmd, fmt.Sprintf("--exclude-from=%s", r.excludeFile))
 		cmd = append(cmd, "--delete-excluded")
 	}
 	if r.includeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--include=%s", r.includeFile))
+		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
 	}
 	if len(r.config.ExtraArgs) != 0 {
 		for _, v := range r.config.ExtraArgs {

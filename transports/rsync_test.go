@@ -134,7 +134,7 @@ func TestRsyncExcludeListOnly(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" --exclude=[^ ]+ --delete-excluded /tmp/a/ /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" --exclude-from=[^ ]+ --delete-excluded /tmp/a/ /tmp/b", false, false)
 }
 
 // Include list only.
@@ -147,7 +147,7 @@ func TestRsyncIncludeListOnly(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" --include=[^ ]+ /tmp/a/ /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" --include-from=[^ ]+ /tmp/a/ /tmp/b", false, false)
 }
 
 // Include & Exclude lists.
@@ -161,7 +161,7 @@ func TestRsyncIncludeAndExclude(t *testing.T) {
 		Transport: "rsync",
 		Logfile:   "/dev/null",
 	}
-	rsyncTest(t, cfg, rsyncTestCmd+" --exclude=[^ ]+ --delete-excluded --include=[^ ]+ /tmp/a/ /tmp/b", false, false)
+	rsyncTest(t, cfg, rsyncTestCmd+" --exclude-from=[^ ]+ --delete-excluded --include-from=[^ ]+ /tmp/a/ /tmp/b", false, false)
 }
 
 // Test that an empty source dir results in error.
