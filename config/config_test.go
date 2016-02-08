@@ -111,6 +111,23 @@ func TestDestOptions(t *testing.T) {
 	}
 }
 
+// Test source_is_mountpoint options.
+func TestSourceIsMountpoint(t *testing.T) {
+	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst\nsource_is_mountpoint=true\n"
+
+	// Make sure source_is_mountpoint set to true doesn't cause an error
+	r := strings.NewReader(baseConfig)
+	if _, err := ParseConfig(r); err != nil {
+		t.Fatalf("ParseConfig failed: %v", err)
+	}
+
+	// Make sure source_is_mountpoint set with source_host set results in error.
+	r = strings.NewReader(baseConfig + "source_host=meh\n")
+	if _, err := ParseConfig(r); err == nil {
+		t.Errorf("ParseConfig succeeded when source_is_mountpoint and source_host are set; want non-nil error")
+	}
+}
+
 // Make sure that improper Logging combinations produce errors and that
 // defaults are assigned to LogDir if it's empty.
 func TestLoggingOptions(t *testing.T) {

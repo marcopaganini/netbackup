@@ -21,21 +21,22 @@ const (
 // *must* be tagged so we can correctly map them to the fields in the config
 // file and detect extraneous configuration items.
 type Config struct {
-	Name        string   `ini:"name"`
-	SourceHost  string   `ini:"source_host"`
-	DestHost    string   `ini:"dest_host"`
-	DestDev     string   `ini:"dest_dev"`
-	SourceDir   string   `ini:"source_dir"`
-	DestDir     string   `ini:"dest_dir"`
-	ExtraArgs   []string `ini:"extra_args" delim:" "`
-	FSCleanup   bool     `ini:"fs_cleanup"`
-	PreCommand  string   `ini:"pre_command"`
-	PostCommand string   `ini:"post_command"`
-	Transport   string   `ini:"transport"`
-	Exclude     []string `ini:"exclude" delim:" "`
-	Include     []string `ini:"include" delim:" "`
-	LogDir      string   `ini:"log_dir"`
-	Logfile     string   `ini:"log_file"`
+	Name               string   `ini:"name"`
+	SourceHost         string   `ini:"source_host"`
+	DestHost           string   `ini:"dest_host"`
+	DestDev            string   `ini:"dest_dev"`
+	SourceDir          string   `ini:"source_dir"`
+	DestDir            string   `ini:"dest_dir"`
+	ExtraArgs          []string `ini:"extra_args" delim:" "`
+	FSCleanup          bool     `ini:"fs_cleanup"`
+	PreCommand         string   `ini:"pre_command"`
+	SourceIsMountPoint bool     `ini:"source_is_mountpoint"`
+	PostCommand        string   `ini:"post_command"`
+	Transport          string   `ini:"transport"`
+	Exclude            []string `ini:"exclude" delim:" "`
+	Include            []string `ini:"include" delim:" "`
+	LogDir             string   `ini:"log_dir"`
+	Logfile            string   `ini:"log_file"`
 	// LUKS specific options
 	LuksDestDev string `ini:"luks_dest_dev"`
 	LuksKeyFile string `ini:"luks_keyfile"`
@@ -120,6 +121,9 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported")
 	case ndev == 0 && config.FSCleanup:
 		return nil, fmt.Errorf("fs_cleanup can only be used when destination is a filesystem")
+	// We can only check if source is a mount point for local backups.
+	case config.SourceHost != "" && config.SourceIsMountPoint:
+		return nil, fmt.Errorf("Cannot validate if source is a mountpoint with remote backups")
 	// Paths must be absolute if we're doing a local backup (no src or dst hosts.)
 	case config.SourceHost == "" && !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")

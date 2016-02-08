@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/marcopaganini/logger"
@@ -138,6 +139,19 @@ func (b *Backup) Run() error {
 	}
 
 	if !b.dryRun {
+		// Make sure sourcedir is a mountpoint, if requested. This should
+		// reduce the risk of backing up an empty (unmounted) source on top of
+		// a full destination.
+		if b.config.SourceIsMountPoint {
+			mounted, err := isMounted(b.config.SourceDir)
+			if err != nil {
+				return fmt.Errorf("Unable to verify if source_dir is mounted: %v", err)
+			}
+			if !mounted {
+				return fmt.Errorf("SourceDir (%s) should be a mountpoint, but is not mounted", b.config.SourceDir)
+			}
+		}
+
 		// Open LUKS device, if needed
 		if b.config.LuksDestDev != "" {
 			devfile, err := b.openLuks()
@@ -246,6 +260,23 @@ func logOpen(path string) (*os.File, error) {
 		return nil, fmt.Errorf("unable to open %q: %v", path, err)
 	}
 	return w, nil
+}
+
+// isMounted returns true if the specified directory is mounted, false otherwise.
+// This function needs /proc/mounts to work.
+func isMounted(dirname string) (bool, error) {
+	d, err := ioutil.ReadFile("/proc/mounts")
+	if err != nil {
+		return false, err
+	}
+	cslice := strings.Split(string(d), "\n")
+	for _, line := range cslice {
+		f := strings.Split(line, " ")
+		if len(f) > 1 && f[1] == dirname {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // main
