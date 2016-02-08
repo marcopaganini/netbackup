@@ -87,7 +87,6 @@ func (r *RdiffBackupTransport) Run() error {
 		"--terminal-verbosity=5",
 		"--preserve-numerical-ids",
 		"--exclude-sockets",
-		"--exclude-other-filesystems",
 		"--force"}
 
 	if r.excludeFile != "" {

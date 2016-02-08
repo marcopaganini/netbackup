@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	rdiffBackupTestCmd = "rdiff-backup --verbosity=5 --terminal-verbosity=5 --preserve-numerical-ids --exclude-sockets --exclude-other-filesystems --force"
+	rdiffBackupTestCmd = "rdiff-backup --verbosity=5 --terminal-verbosity=5 --preserve-numerical-ids --exclude-sockets --force"
 )
 
 // Common rdiff-backup tests: Initialize an rdiff-backup instance with the
