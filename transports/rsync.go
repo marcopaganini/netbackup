@@ -80,7 +80,7 @@ func (r *RsyncTransport) Run() error {
 	defer os.Remove(r.includeFile)
 
 	// Build the full rsync command line
-	cmd := []string{rsyncCmd, "-av", "--delete", "--numeric-ids"}
+	cmd := []string{rsyncCmd, "-avXH", "--delete", "--numeric-ids"}
 
 	if r.excludeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--exclude-from=%s", r.excludeFile))
