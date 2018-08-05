@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -126,6 +127,23 @@ func matchSlice(slice []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// ExitCode fetches the numeric return code from the return of RunCommand.
+// There's no portable way of retrieving the exit code. This function returns
+// 255 if there is an error in the code and we are in a platform that does not
+// have syscall.WaitStatus.
+func ExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	retcode := 255
+	if exiterr, ok := err.(*exec.ExitError); ok {
+		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+			retcode = status.ExitStatus()
+		}
+	}
+	return retcode
 }
 
 // WithShell receives a string command and returns an slice ready to be passed
