@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	rsyncTestCmd = "rsync -av --delete --numeric-ids"
+	rsyncTestCmd = "rsync -avXH --delete --numeric-ids"
 )
 
 // Common rsync tests: Initialize an rsync instance with the config passed
