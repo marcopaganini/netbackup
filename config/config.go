@@ -6,10 +6,8 @@ package config
 
 import (
 	"fmt"
-	"github.com/go-ini/ini"
+	"github.com/BurntSushi/toml"
 	"io"
-	"io/ioutil"
-	"reflect"
 	"strings"
 )
 
@@ -21,66 +19,45 @@ const (
 // *must* be tagged so we can correctly map them to the fields in the config
 // file and detect extraneous configuration items.
 type Config struct {
-	Name               string   `ini:"name"`
-	SourceHost         string   `ini:"source_host"`
-	DestHost           string   `ini:"dest_host"`
-	DestDev            string   `ini:"dest_dev"`
-	SourceDir          string   `ini:"source_dir"`
-	DestDir            string   `ini:"dest_dir"`
-	ExtraArgs          []string `ini:"extra_args" delim:" "`
-	FSCleanup          bool     `ini:"fs_cleanup"`
-	PreCommand         string   `ini:"pre_command"`
-	SourceIsMountPoint bool     `ini:"source_is_mountpoint"`
-	PostCommand        string   `ini:"post_command"`
-	Transport          string   `ini:"transport"`
-	Exclude            []string `ini:"exclude" delim:" "`
-	Include            []string `ini:"include" delim:" "`
-	LogDir             string   `ini:"log_dir"`
-	Logfile            string   `ini:"log_file"`
+	Name               string   `toml:"name"`
+	SourceHost         string   `toml:"source_host"`
+	DestHost           string   `toml:"dest_host"`
+	DestDev            string   `toml:"dest_dev"`
+	SourceDir          string   `toml:"source_dir"`
+	DestDir            string   `toml:"dest_dir"`
+	ExtraArgs          []string `toml:"extra_args" delim:" "`
+	FSCleanup          bool     `toml:"fs_cleanup"`
+	PreCommand         string   `toml:"pre_command"`
+	SourceIsMountPoint bool     `toml:"source_is_mountpoint"`
+	PostCommand        string   `toml:"post_command"`
+	Transport          string   `toml:"transport"`
+	Exclude            []string `toml:"exclude" delim:" "`
+	Include            []string `toml:"include" delim:" "`
+	LogDir             string   `toml:"log_dir"`
+	Logfile            string   `toml:"log_file"`
 	// LUKS specific options
-	LuksDestDev string `ini:"luks_dest_dev"`
-	LuksKeyFile string `ini:"luks_keyfile"`
+	LuksDestDev string `toml:"luks_dest_dev"`
+	LuksKeyFile string `toml:"luks_keyfile"`
 	// Rdiff-backup specific options
-	RdiffBackupMaxAge int `ini:"rdiff_backup_max_age"`
+	RdiffBackupMaxAge int `toml:"rdiff_backup_max_age"`
 }
 
-// ParseConfig reads and parses a ini-style configuration from io.Reader and
-// performs basic sanity checking on it. A pointer to Config is returned or
-// error.
+// ParseConfig reads and parses TOML configuration from io.Reader and performs
+// basic sanity checking on it. A pointer to Config is returned or error.
 func ParseConfig(r io.Reader) (*Config, error) {
 	config := &Config{}
 
-	buf, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading config: %v", err)
-	}
-
-	inicfg, err := ini.Load(buf)
+	mdata, err := toml.DecodeReader(r, config)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading config: %v", err)
 	}
-
-	// For every key in the configuration file, make sure that a corresponding
-	// tag exists in the tags for Config. This guarantees that typos in the
-	// config file will generate an error.
-	ref := reflect.TypeOf(*config)
-
-	for _, inikey := range inicfg.Section("").KeyStrings() {
-		found := false
-		for ix := 0; ix < ref.NumField(); ix++ {
-			skey := ref.Field(ix).Tag.Get("ini")
-			if skey == inikey {
-				found = true
-				break
-			}
+	if len(mdata.Undecoded()) != 0 {
+		keys := []string{}
+		for _, v := range mdata.Undecoded() {
+			strv := v.String()
+			keys = append(keys, strv)
 		}
-		if !found {
-			return nil, fmt.Errorf("Unknown key %q in config file", inikey)
-		}
-	}
-
-	if err := inicfg.MapTo(config); err != nil {
-		return nil, fmt.Errorf("Error parsing config: %v", err)
+		return nil, fmt.Errorf("unknown field(s) in config: %s", strings.Join(keys, ","))
 	}
 
 	// Set defaults

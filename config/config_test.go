@@ -24,7 +24,7 @@ func arrayEqual(a []string, b []string) bool {
 
 // Test minimal configuration.
 func TestParseConfigMinimal(t *testing.T) {
-	cstr := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst"
+	cstr := "name=\"foo\"\ntransport=\"transp\"\nsource_dir=\"/src\"\ndest_dir=\"/dst\""
 	r := strings.NewReader(cstr)
 
 	cfg, err := ParseConfig(r)
@@ -47,7 +47,7 @@ func TestParseConfigMinimal(t *testing.T) {
 
 // Test that invalid key generates an exception.
 func TestParseConfigInvalidKey(t *testing.T) {
-	cstr := "name=foo\ntransport=transp\ninvalidkey=foo"
+	cstr := "name=\"foo\"\ntransport=\"transp\"\ninvalidkey=\"foo\""
 	r := strings.NewReader(cstr)
 
 	if _, err := ParseConfig(r); err == nil {
@@ -66,7 +66,7 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 		// Generate config
 		for _, v := range mandatory {
 			if v != miss {
-				s += v + "=dummy\n"
+				s += v + "=\"dummy\"\n"
 			}
 		}
 		r := strings.NewReader(s)
@@ -78,34 +78,34 @@ func TestParseConfigMandatoryMissing(t *testing.T) {
 
 // Make sure that improper combinations of destinations produce an error.
 func TestDestOptions(t *testing.T) {
-	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\n"
+	baseConfig := "name=\"foo\"\ntransport=\"transp\"\nsource_dir=\"/src\"\n"
 
 	// dest_dir and dest_dev should result in error.
-	r := strings.NewReader(baseConfig + "dest_dir=/dst\ndest_dev=/dev/foo")
+	r := strings.NewReader(baseConfig + "dest_dir=\"/dst\"\ndest_dev=\"/dev/foo\"")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when dest_dir and dest_dev are set; want non-nil error")
 	}
 
 	// dest_dev and dest_host should result in error.
-	r = strings.NewReader(baseConfig + "dest_dev=/dev/foo\ndest_host=foohost")
+	r = strings.NewReader(baseConfig + "dest_dev=\"/dev/foo\"\ndest_host=\"foohost\"")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key dest_dev and dest_host are set; want non-nil error")
 	}
 
 	// dest_dev and dest_luks_dev should result in error.
-	r = strings.NewReader(baseConfig + "dest_dev=/dev/foo\ndest_luks_dev=/luksdev\nluks_key_file=foo")
+	r = strings.NewReader(baseConfig + "dest_dev=\"/dev/foo\"\ndest_luks_dev=\"/luksdev\"\nluks_key_file=\"foo\"")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key dest_dev and luks_dest_dev are set; want non-nil error")
 	}
 
 	// dest_luks_dev without a key file should result in error.
-	r = strings.NewReader(baseConfig + "dest_luks_dev=/luksdev\nluks_key_file=foo")
+	r = strings.NewReader(baseConfig + "dest_luks_dev=\"/luksdev\"\nluks_key_file=\"foo\"")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
 	}
 
 	// filesystem_cleanup without a filesystem destination should result in error.
-	r = strings.NewReader(baseConfig + "dest_dir=/dst\nfs_cleanup=yes")
+	r = strings.NewReader(baseConfig + "dest_dir=\"/dst\"\nfs_cleanup=\"yes\"")
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
 	}
@@ -113,7 +113,7 @@ func TestDestOptions(t *testing.T) {
 
 // Test source_is_mountpoint options.
 func TestSourceIsMountpoint(t *testing.T) {
-	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst\nsource_is_mountpoint=true\n"
+	baseConfig := "name=\"foo\"\ntransport=\"transp\"\nsource_dir=\"/src\"\ndest_dir=\"/dst\"\nsource_is_mountpoint=true\n"
 
 	// Make sure source_is_mountpoint set to true doesn't cause an error
 	r := strings.NewReader(baseConfig)
@@ -122,7 +122,7 @@ func TestSourceIsMountpoint(t *testing.T) {
 	}
 
 	// Make sure source_is_mountpoint set with source_host set results in error.
-	r = strings.NewReader(baseConfig + "source_host=meh\n")
+	r = strings.NewReader(baseConfig + "source_host=\"meh\"\n")
 	if _, err := ParseConfig(r); err == nil {
 		t.Errorf("ParseConfig succeeded when source_is_mountpoint and source_host are set; want non-nil error")
 	}
@@ -131,12 +131,12 @@ func TestSourceIsMountpoint(t *testing.T) {
 // Make sure that improper Logging combinations produce errors and that
 // defaults are assigned to LogDir if it's empty.
 func TestLoggingOptions(t *testing.T) {
-	baseConfig := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst\n"
+	baseConfig := "name=\"foo\"\ntransport=\"transp\"\nsource_dir=\"/src\"\ndest_dir=\"/dst\"\n"
 	logDir := "/logdir"
 	logFile := "/logfile"
 
 	// LogDir and no Logfile
-	r := strings.NewReader(baseConfig + "log_dir=" + logDir)
+	r := strings.NewReader(baseConfig + "log_dir=\"" + logDir + "\"")
 	cfg, err := ParseConfig(r)
 	if err != nil {
 		t.Fatalf("ParseConfig failed: %v", err)
@@ -149,7 +149,7 @@ func TestLoggingOptions(t *testing.T) {
 	}
 
 	// Logfile and no LogDir
-	r = strings.NewReader(baseConfig + "log_file=" + logFile)
+	r = strings.NewReader(baseConfig + "log_file=\"" + logFile + "\"")
 	cfg, err = ParseConfig(r)
 	if err != nil {
 		t.Fatalf("ParseConfig failed: %v", err)
@@ -175,7 +175,7 @@ func TestLoggingOptions(t *testing.T) {
 	}
 
 	// Logfile and LogDir should result in error
-	r = strings.NewReader(baseConfig + "log_file=" + logFile + "\nlog_dir=" + logDir)
+	r = strings.NewReader(baseConfig + "log_file=\"" + logFile + "\"\nlog_dir=\"" + logDir + "\"")
 	if _, err := ParseConfig(r); err == nil {
 		t.Errorf("ParseConfig succeeded when keys log_dir and log_file are set; want non-nil error")
 	}
@@ -185,28 +185,28 @@ func TestLoggingOptions(t *testing.T) {
 // if SourceHost and DestHost are not set (local backup), respectively.
 func TestRelativePaths(t *testing.T) {
 	// Relative source_dir, local backup (FAIL)
-	cstr := "name=foo\nsource_dir=a\ndest_dir=/b\ntransport=transp"
+	cstr := "name=\"foo\"\nsource_dir=\"a\"\ndest_dir=\"/b\"\ntransport=\"transp\""
 	r := strings.NewReader(cstr)
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when source_dir is a relative path; want non-nil error: %v", err)
 	}
 
 	// Relative dest_dir, local backup (FAIL)
-	cstr = "name=foo\nsource_dir=/a\ndest_dir=b\ntransport=transp"
+	cstr = "name=\"foo\"\nsource_dir=\"/a\"\ndest_dir=\"b\"\ntransport=\"transp\""
 	r = strings.NewReader(cstr)
 	if _, err := ParseConfig(r); err == nil {
 		t.Fatalf("ParseConfig succeeded when dest_dir is a relative path; want non-nil error: %v", err)
 	}
 
 	// Relative source_dir, sourc_host set (OK)
-	cstr = "name=foo\nsource_dir=a\nsource_host=foo\ndest_dir=/b\ntransport=transp"
+	cstr = "name=\"foo\"\nsource_dir=\"a\"\nsource_host=\"foo\"\ndest_dir=\"/b\"\ntransport=\"transp\""
 	r = strings.NewReader(cstr)
 	if _, err := ParseConfig(r); err != nil {
 		t.Fatalf("ParseConfig failed when source_dir is a relative path and source_host is set: %v", err)
 	}
 
 	// Relative dest_dir, local backup
-	cstr = "name=foo\nsource_dir=/a\ndest_dir=b\ndest_host=foo\ntransport=transp"
+	cstr = "name=\"foo\"\nsource_dir=\"/a\"\ndest_dir=\"b\"\ndest_host=\"foo\"\ntransport=\"transp\""
 	r = strings.NewReader(cstr)
 	if _, err := ParseConfig(r); err != nil {
 		t.Fatalf("ParseConfig failed when dest_dir is a relative path and dest_host is set: %v", err)
@@ -215,7 +215,7 @@ func TestRelativePaths(t *testing.T) {
 
 // Test that Exclude and Include produce lists of strings.
 func TestParseConfigLists(t *testing.T) {
-	cstr := "name=foo\ntransport=transp\nsource_dir=/src\ndest_dir=/dst\nexclude=aa bb cc\ninclude=dd ee ff"
+	cstr := "name=\"foo\"\ntransport=\"transp\"\nsource_dir=\"/src\"\ndest_dir=\"/dst\"\nexclude=[\"aa\", \"bb\", \"cc\"]\ninclude=[\"dd\", \"ee\", \"ff\"]"
 	r := strings.NewReader(cstr)
 
 	cfg, err := ParseConfig(r)
