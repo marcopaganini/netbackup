@@ -139,5 +139,5 @@ func (t *Transport) buildDest() string {
 // It needs to be overriden to something useful in structs that embed the
 // Transport structure.
 func (t *Transport) Run() error {
-	return fmt.Errorf("Internal error: Attempted to execute generic Run method.")
+	return fmt.Errorf("internal error: Attempted to execute generic Run method.")
 }
