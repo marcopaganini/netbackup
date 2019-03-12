@@ -220,6 +220,8 @@ func (b *Backup) Run() error {
 		transp, err = transports.NewRcloneTransport(b.config, nil, b.log, b.dryRun)
 	case "rdiff-backup":
 		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.log, b.dryRun)
+	case "restic":
+		transp, err = transports.NewResticTransport(b.config, nil, b.log, b.dryRun)
 	case "rsync":
 		transp, err = transports.NewRsyncTransport(b.config, nil, b.log, b.dryRun)
 	default:
