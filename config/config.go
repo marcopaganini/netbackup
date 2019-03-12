@@ -25,6 +25,7 @@ type Config struct {
 	DestDev            string   `toml:"dest_dev"`
 	SourceDir          string   `toml:"source_dir"`
 	DestDir            string   `toml:"dest_dir"`
+	ExpireDays         int      `toml:"expire_days"`
 	ExtraArgs          []string `toml:"extra_args" delim:" "`
 	FSCleanup          bool     `toml:"fs_cleanup"`
 	PreCommand         string   `toml:"pre_command"`

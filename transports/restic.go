@@ -56,8 +56,8 @@ func (r *ResticTransport) checkConfig() error {
 		return fmt.Errorf("config error: DestDir is empty")
 	case len(r.config.Exclude) != 0:
 		return fmt.Errorf("config error: Exclude is not supported by restic transport")
-	case r.config.SourceHost != "" || r.config.DestHost != "":
-		return fmt.Errorf("config error: Cannot have source or dest host set")
+	case r.config.SourceHost != "":
+		return fmt.Errorf("config error: Cannot have source host set (push mode only)")
 	}
 	return nil
 }
@@ -69,6 +69,10 @@ func (r *ResticTransport) checkConfig() error {
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (r *ResticTransport) Run() error {
+	// Cmds contains multiple commands to be executed.
+	// Failure in one command will stop the chain of executions.
+	var cmds [][]string
+
 	// Create exclude list, if needed.
 	err := r.createExcludeFile(r.config.Exclude)
 	if err != nil {
@@ -76,26 +80,52 @@ func (r *ResticTransport) Run() error {
 	}
 	defer os.Remove(r.excludeFile)
 
-	// Build the full restic command line
-	cmd := []string{resticCmd, "-v", "-r", r.config.SourceDir}
+	cmd := r.makeResticCmd()
+	cmd = append(cmd, "backup", r.config.SourceDir)
 
+	// Add to list of commands.
+	cmds = append(cmds, cmd)
+
+	// Create expiration command, if required.
+	if r.config.ExpireDays != 0 {
+		cmd = r.makeResticCmd()
+		cmd = append(cmd, []string{"forget", fmt.Sprintf("--keep-within=%dd", r.config.ExpireDays), "--prune"}...)
+		cmds = append(cmds, cmd)
+	}
+
+	for i, c := range cmds {
+		r.log.Verbosef(1, "Command(%d/%d): %s\n", i+1, len(cmds), strings.Join(c, " "))
+	}
+
+	// Execute the command(s)
+	if !r.dryRun {
+		for _, c := range cmds {
+			err := execute.RunCommand("RESTIC", c, r.log, r.execute, nil, nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// makeResticCmd creates a basic restic command with the binary and extra options.
+func (r *ResticTransport) makeResticCmd() []string {
+	cmd := []string{resticCmd, "-v"}
+
+	// Add exclude, if defined.
 	if r.excludeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--exclude-file=%s", r.excludeFile))
 	}
 
+	// Add extra arguments.
 	if len(r.config.ExtraArgs) != 0 {
 		for _, v := range r.config.ExtraArgs {
 			cmd = append(cmd, v)
 		}
 	}
 
-	cmd = append(cmd, "backup", r.config.SourceDir)
-
-	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
-
-	// Execute the command
-	if !r.dryRun {
-		return execute.RunCommand("RESTIC", cmd, r.log, r.execute, nil, nil)
-	}
-	return nil
+	// Add destination repository.
+	cmd = append(cmd, []string{"-r", r.buildDest()}...)
+	return cmd
 }
