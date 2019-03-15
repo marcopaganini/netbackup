@@ -20,6 +20,7 @@ func TestRestic(t *testing.T) {
 		transport  string
 		logfile    string
 		expectCmds []string
+		include    []string
 		exclude    []string
 		dryRun     bool
 		wantError  bool
@@ -32,7 +33,6 @@ func TestRestic(t *testing.T) {
 			transport: "restic",
 			logfile:   "/dev/null",
 			dryRun:    true,
-			wantError: false,
 		},
 		// Same machine (local copy).
 		{
@@ -121,6 +121,7 @@ func TestRestic(t *testing.T) {
 			DestHost:   tt.destHost,
 			Transport:  tt.transport,
 			Logfile:    tt.logfile,
+			Include:    tt.include,
 			Exclude:    tt.exclude,
 		}
 
