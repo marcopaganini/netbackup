@@ -35,12 +35,16 @@ func rcloneTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mu
 	if err := rclone.Run(); err != nil {
 		t.Fatalf("rclone.Run failed: %v", err)
 	}
-	matched, err := regexp.MatchString(expect, fakeExecute.Cmd())
+	cmds := ""
+	if len(fakeExecute.Cmds()) != 0 {
+		cmds = fakeExecute.Cmds()[0]
+	}
+	matched, err := regexp.MatchString(expect, cmds)
 	if err != nil {
 		t.Fatalf("error during regexp match: %v", err)
 	}
 	if !matched {
-		t.Fatalf("name should match %s; is %s", expect, fakeExecute.Cmd())
+		t.Fatalf("name should match %s; is %s", expect, cmds)
 	}
 }
 

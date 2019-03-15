@@ -54,8 +54,8 @@ func (r *ResticTransport) checkConfig() error {
 		return fmt.Errorf("config error: SourceDir is empty")
 	case r.config.DestDir == "":
 		return fmt.Errorf("config error: DestDir is empty")
-	case len(r.config.Exclude) != 0:
-		return fmt.Errorf("config error: Exclude is not supported by restic transport")
+	case len(r.config.Include) != 0:
+		return fmt.Errorf("config error: Include is not supported by restic transport")
 	case r.config.SourceHost != "":
 		return fmt.Errorf("config error: Cannot have source host set (push mode only)")
 	}

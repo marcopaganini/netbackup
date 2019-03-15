@@ -8,6 +8,7 @@ import (
 	"github.com/marcopaganini/netbackup/execute"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -16,9 +17,9 @@ import (
 // tests. Individual transports tests go in their respective *_test.go files.
 
 // FakeExecute is a fake implementation of execute.Execute that saves the executed
-// command for later inspection by the caller.
+// commands for later inspection by the caller.
 type FakeExecute struct {
-	cmd string
+	cmds []string
 }
 
 func NewFakeExecute() *FakeExecute {
@@ -31,12 +32,12 @@ func (f *FakeExecute) SetStdout(execute.CallbackFunc) {
 func (f *FakeExecute) SetStderr(execute.CallbackFunc) {
 }
 
-func (f *FakeExecute) Cmd() string {
-	return f.cmd
+func (f *FakeExecute) Cmds() []string {
+	return f.cmds
 }
 
 func (f *FakeExecute) Exec(a []string) error {
-	f.cmd = strings.Join(a, " ")
+	f.cmds = append(f.cmds, strings.Join(a, " "))
 	return nil
 }
 
@@ -56,4 +57,22 @@ func TestWriteList(t *testing.T) {
 	if string(contents) != expected {
 		t.Fatalf("generated list file contents should match\n[%s]\n\nbut is\n\n[%s]", expected, string(contents))
 	}
+}
+
+// reMatch returns true if all all strings in a slice match regular expressions in
+// another slice, 1:1.
+func reMatch(re, s []string) (bool, error) {
+	if len(re) != len(s) {
+		return false, nil
+	}
+	for i, r := range re {
+		matched, err := regexp.MatchString(r, s[i])
+		if err != nil {
+			return false, err
+		}
+		if !matched {
+			return false, nil
+		}
+	}
+	return true, nil
 }
