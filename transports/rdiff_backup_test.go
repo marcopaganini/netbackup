@@ -7,7 +7,6 @@ package transports
 import (
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"regexp"
 	"testing"
 )
 
@@ -15,166 +14,174 @@ const (
 	rdiffBackupTestCmd = "rdiff-backup --verbosity=5 --terminal-verbosity=5 --preserve-numerical-ids --exclude-sockets --force"
 )
 
-// Common rdiff-backup tests: Initialize an rdiff-backup instance with the
-// config passed and test fail if the generated command doesn't match the
-// expected command line regexp. The value of dryRun is passed to the
-// initializon of rdiff-backup. If must_error is true, the call to
-// NewRdiffBackupTransport *must* fail, or the test will fail.
-func rdiffBackupTest(t *testing.T, cfg *config.Config, expect string, dryRun bool, mustError bool) {
-	fakeExecute := NewFakeExecute()
+func TestRdiffBackup(t *testing.T) {
+	casetests := []struct {
+		name       string
+		sourceDir  string
+		sourceHost string
+		destDir    string
+		destHost   string
+		transport  string
+		logfile    string
+		expectCmds []string
+		include    []string
+		exclude    []string
+		dryRun     bool
+		wantError  bool
+	}{
+		// Dry run: No command should be executed
+		{
+			name:      "fake",
+			sourceDir: "/tmp/a",
+			destDir:   "/tmp/b",
+			transport: "rdiff-backup",
+			logfile:   "/dev/null",
+			dryRun:    true,
+		},
 
-	log := logger.New("")
+		// Same machine (local copy)
+		{
+			name:       "fake",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expectCmds: []string{rdiffBackupTestCmd + " /tmp/a /tmp/b"},
+		},
 
-	// Create a new rdiff-backup object with our fakeExecute and a sinking outLogWriter.
-	rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, log, dryRun)
-	if err != nil {
-		if mustError {
-			return
+		// Local source, remote destination
+		{
+			name:       "fake",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			destHost:   "desthost",
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expectCmds: []string{rdiffBackupTestCmd + " /tmp/a desthost::/tmp/b"},
+		},
+
+		// Remote source, local destination (unusual)
+		{
+			name:       "fake",
+			sourceHost: "srchost",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expectCmds: []string{rdiffBackupTestCmd + " srchost::/tmp/a /tmp/b"},
+		},
+
+		// Remote source, Remote destination (server side copy) not supported under
+		// rdiff-backup and should return an error.
+		{
+			name:       "fake",
+			sourceHost: "srchost",
+			sourceDir:  "/tmp/a",
+			destHost:   "desthost",
+			destDir:    "/tmp/b",
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			wantError:  true,
+		},
+
+		// Exclude list only
+		{
+			name:       "fake",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			exclude:    []string{"x/foo", "x/bar"},
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expectCmds: []string{rdiffBackupTestCmd + " --exclude-globbing-filelist=[^ ]+ /tmp/a /tmp/b"},
+		},
+
+		// Include list only
+		{
+			name:       "fake",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			include:    []string{"x/foo", "x/bar"},
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expectCmds: []string{rdiffBackupTestCmd + " --include-globbing-filelist=[^ ]+ /tmp/a /tmp/b"},
+		},
+
+		// Include & Exclude lists
+		{
+			name:       "fake",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			exclude:    []string{"x/foo", "x/bar"},
+			include:    []string{"x/foo", "x/bar"},
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expectCmds: []string{rdiffBackupTestCmd + " --exclude-globbing-filelist=[^ ]+ --include-globbing-filelist=[^ ]+ /tmp/a /tmp/b"},
+		},
+
+		// Test that an empty source dir results in an error
+		{
+			name:      "fake",
+			destDir:   "/tmp/b",
+			transport: "rdiff-backup",
+			logfile:   "/dev/null",
+			wantError: true,
+		},
+
+		// Test that an empty destination dir results in an error
+		{
+			name:      "fake",
+			sourceDir: "/tmp/a",
+			transport: "rdiff-backup",
+			logfile:   "/dev/null",
+			wantError: true,
+		},
+	}
+
+	for _, tt := range casetests {
+		fakeExecute := NewFakeExecute()
+
+		log := logger.New("")
+
+		cfg := &config.Config{
+			Name:       tt.name,
+			SourceDir:  tt.sourceDir,
+			SourceHost: tt.sourceHost,
+			DestDir:    tt.destDir,
+			DestHost:   tt.destHost,
+			Transport:  tt.transport,
+			Logfile:    tt.logfile,
+			Include:    tt.include,
+			Exclude:    tt.exclude,
 		}
-		t.Fatalf("NewRdiffBackupTransport failed: %v", err)
-	}
-	if mustError {
-		t.Fatalf("NewRdiffBackupTransport should return have failed, but got nil error")
-	}
-	if err := rdiffBackup.Run(); err != nil {
-		t.Fatalf("Run failed: %v", err)
-	}
-	cmds := ""
-	if len(fakeExecute.Cmds()) != 0 {
-		cmds = fakeExecute.Cmds()[0]
-	}
-	matched, err := regexp.MatchString(expect, cmds)
-	if err != nil {
-		t.Fatalf("error during regexp match: %v", err)
-	}
-	if !matched {
-		t.Fatalf("name should match %s; is %s", expect, cmds)
-	}
-}
 
-// Dry run: No command should be executed
-func TestRdiffBackupDryRun(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		DestDir:   "/tmp/b",
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, "", true, false)
-}
+		// Create a new transport object with our fakeExecute and a sinking outLogWriter.
+		rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, log, tt.dryRun)
+		if tt.wantError && err != nil {
+			continue
+		}
+		if err != nil {
+			t.Fatalf("Unable to create rdiff-backup transport: %v", err)
+		}
 
-// Same machine (local copy)
-func TestRdiffBackupSameMachine(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		DestDir:   "/tmp/b",
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
+		if err := rdiffBackup.Run(); err != nil {
+			t.Fatalf("rdiffBackup.Run failed: %v", err)
+		}
+		if !tt.wantError {
+			if err != nil {
+				t.Fatalf("Got error %q want no error", err)
+			}
+			match, err := reMatch(tt.expectCmds, fakeExecute.Cmds())
+			if err != nil {
+				t.Fatalf("Error on regexp match: %v", err)
+			}
+			if !match {
+				t.Fatalf("command diff: Got %v, want %v", fakeExecute.Cmds(), tt.expectCmds)
+			}
+			continue
+		}
+		// Here, we want to see an error.
+		if err == nil {
+			t.Errorf("Got no error, want error")
+		}
 	}
-	rdiffBackupTest(t, cfg, rdiffBackupTestCmd+" /tmp/a /tmp/b", false, false)
-}
-
-// Local source, remote destination
-func TestRdiffBackupLocalSourceRemoteDest(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		DestDir:   "/tmp/b",
-		DestHost:  "desthost",
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, rdiffBackupTestCmd+" /tmp/a desthost::/tmp/b", false, false)
-}
-
-// Remote source, local destination (unusual)
-func TestRdiffBackupRemoteSourceLocalDest(t *testing.T) {
-	cfg := &config.Config{
-		Name:       "fake",
-		SourceHost: "srchost",
-		SourceDir:  "/tmp/a",
-		DestDir:    "/tmp/b",
-		Transport:  "rdiff-backup",
-		Logfile:    "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, rdiffBackupTestCmd+" srchost::/tmp/a /tmp/b", false, false)
-}
-
-// Remote source, Remote destination (server side copy) not supported under
-// rdiff-backup and should return an error.
-func TestRdiffBackupRemoteSourceRemoteDest(t *testing.T) {
-	cfg := &config.Config{
-		Name:       "fake",
-		SourceHost: "srchost",
-		SourceDir:  "/tmp/a",
-		DestHost:   "desthost",
-		DestDir:    "/tmp/b",
-		Transport:  "rdiff-backup",
-		Logfile:    "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, "", false, true)
-}
-
-// Exclude list only
-func TestRdiffBackupExcludeListOnly(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		DestDir:   "/tmp/b",
-		Exclude:   []string{"x/foo", "x/bar"},
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, rdiffBackupTestCmd+" --exclude-globbing-filelist=[^ ]+ /tmp/a /tmp/b", false, false)
-}
-
-// Include list only
-func TestRdiffBackupIncludeListOnly(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		DestDir:   "/tmp/b",
-		Include:   []string{"x/foo", "x/bar"},
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, rdiffBackupTestCmd+" --include-globbing-filelist=[^ ]+ /tmp/a /tmp/b", false, false)
-}
-
-// Include & Exclude lists
-func TestRdiffBackupIncludeAndExclude(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		DestDir:   "/tmp/b",
-		Exclude:   []string{"x/foo", "x/bar"},
-		Include:   []string{"x/foo", "x/bar"},
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, rdiffBackupTestCmd+" --exclude-globbing-filelist=[^ ]+ --include-globbing-filelist=[^ ]+ /tmp/a /tmp/b", false, false)
-}
-
-// Test that an empty source dir results in an error
-func TestRdiffBackupEmptySourceDir(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		DestDir:   "/tmp/b",
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, "", false, true)
-}
-
-// Test that an empty destination dir results in an error
-func TestRdiffBackupEmptyDestDir(t *testing.T) {
-	cfg := &config.Config{
-		Name:      "fake",
-		SourceDir: "/tmp/a",
-		Transport: "rdiff-backup",
-		Logfile:   "/dev/null",
-	}
-	rdiffBackupTest(t, cfg, "", false, true)
 }
