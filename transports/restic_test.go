@@ -131,7 +131,7 @@ func TestRestic(t *testing.T) {
 			continue
 		}
 		if err != nil {
-			t.Fatalf("restic.NewResticTransport failed: %v", err)
+			t.Fatalf("NewResticTransport failed: %v", err)
 		}
 
 		if err := restic.Run(); err != nil {

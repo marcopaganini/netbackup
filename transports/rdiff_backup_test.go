@@ -160,7 +160,7 @@ func TestRdiffBackup(t *testing.T) {
 			continue
 		}
 		if err != nil {
-			t.Fatalf("Unable to create rdiff-backup transport: %v", err)
+			t.Fatalf("NewRdiffBackupTransport failed: %v", err)
 		}
 
 		if err := rdiffBackup.Run(); err != nil {

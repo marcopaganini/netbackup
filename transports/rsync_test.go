@@ -159,7 +159,7 @@ func TestRsync(t *testing.T) {
 			continue
 		}
 		if err != nil {
-			t.Fatalf("rsync.NewRsyncTransport failed: %v", err)
+			t.Fatalf("NewRsyncTransport failed: %v", err)
 		}
 
 		if err := rsync.Run(); err != nil {
