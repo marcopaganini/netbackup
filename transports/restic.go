@@ -118,14 +118,9 @@ func (r *ResticTransport) makeResticCmd() []string {
 		cmd = append(cmd, fmt.Sprintf("--exclude-file=%s", r.excludeFile))
 	}
 
-	// Add extra arguments.
-	if len(r.config.ExtraArgs) != 0 {
-		for _, v := range r.config.ExtraArgs {
-			cmd = append(cmd, v)
-		}
-	}
+	cmd = append(cmd, r.config.ExtraArgs...)
 
 	// Add destination repository.
-	cmd = append(cmd, []string{"-r", r.buildDest()}...)
+	cmd = append(cmd, []string{"-r", r.buildDest(":")}...)
 	return cmd
 }

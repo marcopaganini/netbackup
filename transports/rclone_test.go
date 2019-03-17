@@ -149,7 +149,7 @@ func TestRclone(t *testing.T) {
 			t.Fatalf("NewRcloneTransport failed: %v", err)
 		}
 
-		if err := rclone.Run(); err != nil {
+		if err = rclone.Run(); err != nil {
 			t.Fatalf("rclone.Run failed: %v", err)
 		}
 		if !tt.wantError {

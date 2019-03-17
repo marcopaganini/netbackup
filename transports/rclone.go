@@ -74,13 +74,10 @@ func (r *RcloneTransport) Run() error {
 	if r.includeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
 	}
-	if len(r.config.ExtraArgs) != 0 {
-		for _, v := range r.config.ExtraArgs {
-			cmd = append(cmd, v)
-		}
-	}
-	cmd = append(cmd, r.buildSource())
-	cmd = append(cmd, r.buildDest())
+	cmd = append(cmd, r.config.ExtraArgs...)
+
+	cmd = append(cmd, r.buildSource(":"))
+	cmd = append(cmd, r.buildDest(":"))
 
 	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 

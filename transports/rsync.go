@@ -89,28 +89,25 @@ func (r *RsyncTransport) Run() error {
 	if r.includeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
 	}
-	if len(r.config.ExtraArgs) != 0 {
-		for _, v := range r.config.ExtraArgs {
-			cmd = append(cmd, v)
-		}
-	}
+	cmd = append(cmd, r.config.ExtraArgs...)
+
 	// In rsync, the source needs to ends with a slash or the
 	// source directory will be created inside the destination.
 	// The exception are the cases where the source already ends
 	// in a slash (ex: /)
-	src := r.buildSource()
+	src := r.buildSource(":")
 	if !strings.HasSuffix(src, "/") {
 		src = src + "/"
 	}
 	cmd = append(cmd, src)
-	cmd = append(cmd, r.buildDest())
+	cmd = append(cmd, r.buildDest(":"))
 
 	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 
 	// Execute the command
 	err = nil
 	if !r.dryRun {
-		err := execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
+		err = execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
 		if err != nil {
 			rc := execute.ExitCode(err)
 

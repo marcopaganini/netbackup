@@ -111,21 +111,23 @@ func (t *Transport) createIncludeFile(paths []string) error {
 }
 
 // buildSource creates the backup source based on the source host and path.
-// The default is [sourcehost:]sourcepath
-func (t *Transport) buildSource() string {
+// The default is [sourcehost<separator>]sourcepath. The default separator
+// is ":".
+func (t *Transport) buildSource(separator string) string {
 	src := t.config.SourceDir
 	if t.config.SourceHost != "" {
-		src = t.config.SourceHost + ":" + src
+		src = t.config.SourceHost + separator + src
 	}
 	return src
 }
 
 // buildDest creates the backup destinatino based on the destination host and
-// path.  The default is [desthost:]destpath.
-func (t *Transport) buildDest() string {
+// path.  The default is [desthost:<separator>]destpath. The default separator
+// is ":".
+func (t *Transport) buildDest(separator string) string {
 	dst := t.config.DestDir
 	if t.config.DestHost != "" {
-		dst = t.config.DestHost + ":" + dst
+		dst = t.config.DestHost + separator + dst
 	}
 	return dst
 }
@@ -136,8 +138,8 @@ func (t *Transport) buildDest() string {
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr. Note that this is the generic form which only outputs an error.
-// It needs to be overriden to something useful in structs that embed the
+// It needs to be overridden to something useful in structs that embed the
 // Transport structure.
 func (t *Transport) Run() error {
-	return fmt.Errorf("internal error: Attempted to execute generic Run method.")
+	return fmt.Errorf("internal error: Attempted to execute generic Run method")
 }

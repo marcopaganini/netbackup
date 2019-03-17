@@ -95,23 +95,11 @@ func (r *RdiffBackupTransport) Run() error {
 	if r.includeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--include-globbing-filelist=%s", r.includeFile))
 	}
-	if len(r.config.ExtraArgs) != 0 {
-		for _, v := range r.config.ExtraArgs {
-			cmd = append(cmd, v)
-		}
-	}
+	cmd = append(cmd, r.config.ExtraArgs...)
 
 	// rdiff-backup uses double colons as host/destination separators.
-	src := r.config.SourceDir
-	if r.config.SourceHost != "" {
-		src = r.config.SourceHost + "::" + src
-	}
-	dst := r.config.DestDir
-	if r.config.DestHost != "" {
-		dst = r.config.DestHost + "::" + dst
-	}
-	cmd = append(cmd, src)
-	cmd = append(cmd, dst)
+	cmd = append(cmd, r.buildSource("::"))
+	cmd = append(cmd, r.buildDest("::"))
 
 	// Execute the command
 	spam := []string{
@@ -139,7 +127,7 @@ func (r *RdiffBackupTransport) Run() error {
 			rdiffBackupCmd,
 			fmt.Sprintf("--remove-older-than=%dD", r.config.RdiffBackupMaxAge),
 			"--force",
-			dst}
+			r.buildDest("::")}
 
 		r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 		if !r.dryRun {
