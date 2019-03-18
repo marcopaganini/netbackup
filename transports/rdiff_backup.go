@@ -67,6 +67,10 @@ func (r *RdiffBackupTransport) checkConfig() error {
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (r *RdiffBackupTransport) Run() error {
+	// Cmds contains multiple commands to be executed.
+	// Failure in one command will stop the chain of executions.
+	var cmds [][]string
+
 	// Create exclude/include lists, if needed
 	err := r.createExcludeFile(r.config.Exclude)
 	if err != nil {
@@ -101,6 +105,19 @@ func (r *RdiffBackupTransport) Run() error {
 	cmd = append(cmd, r.buildSource("::"))
 	cmd = append(cmd, r.buildDest("::"))
 
+	// main command
+	cmds = append(cmds, cmd)
+
+	// Add expiration command, if required.
+	if r.config.ExpireDays != 0 {
+		cmd := []string{
+			rdiffBackupCmd,
+			fmt.Sprintf("--remove-older-than=%dD", r.config.ExpireDays),
+			"--force",
+			r.buildDest("::")}
+		cmds = append(cmds, cmd)
+	}
+
 	// Execute the command
 	spam := []string{
 		"POSIX ACLs not supported",
@@ -111,30 +128,19 @@ func (r *RdiffBackupTransport) Run() error {
 		"Updated mirror temp file.* does not match source",
 		"/.gvfs"}
 
-	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
-
-	if !r.dryRun {
-		// Run
-		err = execute.RunCommand("RDIFF-BACKUP", cmd, r.log, r.execute, spam, spam)
-		if err != nil {
-			return err
-		}
+	for i, c := range cmds {
+		r.log.Verbosef(1, "Command(%d/%d): %s\n", i+1, len(cmds), strings.Join(c, " "))
 	}
 
-	// Remove older files, if requested.
-	if r.config.RdiffBackupMaxAge != 0 {
-		cmd := []string{
-			rdiffBackupCmd,
-			fmt.Sprintf("--remove-older-than=%dD", r.config.RdiffBackupMaxAge),
-			"--force",
-			r.buildDest("::")}
-
-		r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
-		if !r.dryRun {
-			return execute.RunCommand("RDIFF-BACKUP", cmd, r.log, r.execute, spam, spam)
+	// Execute the command(s)
+	if !r.dryRun {
+		for _, c := range cmds {
+			err := execute.RunCommand("RDIFF-BACKUP", c, r.log, r.execute, spam, spam)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
-
 }

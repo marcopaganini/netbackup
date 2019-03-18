@@ -26,6 +26,7 @@ func TestRdiffBackup(t *testing.T) {
 		expectCmds []string
 		include    []string
 		exclude    []string
+		expireDays int
 		dryRun     bool
 		wantError  bool
 	}{
@@ -38,7 +39,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:   "/dev/null",
 			dryRun:    true,
 		},
-
 		// Same machine (local copy)
 		{
 			name:       "fake",
@@ -48,7 +48,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			expectCmds: []string{rdiffBackupTestCmd + " /tmp/a /tmp/b"},
 		},
-
 		// Local source, remote destination
 		{
 			name:       "fake",
@@ -59,7 +58,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			expectCmds: []string{rdiffBackupTestCmd + " /tmp/a desthost::/tmp/b"},
 		},
-
 		// Remote source, local destination (unusual)
 		{
 			name:       "fake",
@@ -70,7 +68,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			expectCmds: []string{rdiffBackupTestCmd + " srchost::/tmp/a /tmp/b"},
 		},
-
 		// Remote source, Remote destination (server side copy) not supported under
 		// rdiff-backup and should return an error.
 		{
@@ -83,7 +80,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			wantError:  true,
 		},
-
 		// Exclude list only
 		{
 			name:       "fake",
@@ -94,7 +90,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			expectCmds: []string{rdiffBackupTestCmd + " --exclude-globbing-filelist=[^ ]+ /tmp/a /tmp/b"},
 		},
-
 		// Include list only
 		{
 			name:       "fake",
@@ -105,7 +100,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			expectCmds: []string{rdiffBackupTestCmd + " --include-globbing-filelist=[^ ]+ /tmp/a /tmp/b"},
 		},
-
 		// Include & Exclude lists
 		{
 			name:       "fake",
@@ -117,7 +111,19 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:    "/dev/null",
 			expectCmds: []string{rdiffBackupTestCmd + " --exclude-globbing-filelist=[^ ]+ --include-globbing-filelist=[^ ]+ /tmp/a /tmp/b"},
 		},
-
+		// Expiration.
+		{
+			name:       "fake",
+			sourceDir:  "/tmp/a",
+			destDir:    "/tmp/b",
+			transport:  "rdiff-backup",
+			logfile:    "/dev/null",
+			expireDays: 7,
+			expectCmds: []string{
+				rdiffBackupTestCmd + " /tmp/a /tmp/b",
+				"rdiff-backup --remove-older-than=7D --force /tmp/b",
+			},
+		},
 		// Test that an empty source dir results in an error
 		{
 			name:      "fake",
@@ -126,7 +132,6 @@ func TestRdiffBackup(t *testing.T) {
 			logfile:   "/dev/null",
 			wantError: true,
 		},
-
 		// Test that an empty destination dir results in an error
 		{
 			name:      "fake",
@@ -149,6 +154,7 @@ func TestRdiffBackup(t *testing.T) {
 			DestDir:    tt.destDir,
 			DestHost:   tt.destHost,
 			Transport:  tt.transport,
+			ExpireDays: tt.expireDays,
 			Logfile:    tt.logfile,
 			Include:    tt.include,
 			Exclude:    tt.exclude,

@@ -39,8 +39,6 @@ type Config struct {
 	// LUKS specific options
 	LuksDestDev string `toml:"luks_dest_dev"`
 	LuksKeyFile string `toml:"luks_keyfile"`
-	// Rdiff-backup specific options
-	RdiffBackupMaxAge int `toml:"rdiff_backup_max_age"`
 }
 
 // ParseConfig reads and parses TOML configuration from io.Reader and performs
