@@ -12,8 +12,7 @@ import (
 
 const (
 	// Flag defaults
-	defaultOptVerboseLevel = 0
-	defaultOptDryRun       = false
+	defaultOptDryRun = false
 )
 
 type multiLevelInt int

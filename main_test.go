@@ -9,22 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/marcopaganini/logger"
-	"github.com/marcopaganini/netbackup/config"
 )
-
-// Return a Backup object with fake calls
-func fakeBackup() *Backup {
-	log = logger.New("")
-	fakeConfig := &config.Config{}
-
-	fakeBackup := &Backup{
-		log:    log,
-		config: fakeConfig,
-		dryRun: false}
-	return fakeBackup
-}
 
 // Test logOpen
 func TestLogOpen(t *testing.T) {

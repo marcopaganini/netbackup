@@ -35,7 +35,6 @@ const (
 	cryptSetupCmd = "cryptsetup"
 	fsckCmd       = "fsck"
 	tunefsCmd     = "tune2fs"
-	dfCmd         = "df"
 )
 
 // Backup contains information for a given backup instance.
@@ -84,7 +83,7 @@ func (b *Backup) umountDev() error {
 }
 
 // openLuks opens the luks destination device into a temporary /dev/mapper
-// device file and retuns the /dev/mapper device filename.
+// device file and returns the /dev/mapper device filename.
 func (b *Backup) openLuks() (string, error) {
 	// Our temporary dev/mapper device is based on the config name
 	devname := "netbackup_" + b.config.Name
