@@ -2,7 +2,7 @@
 //
 // See instructions in the README.md file that accompanies this program.
 //
-// (C) 2015-2018 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015-2019 by Marco Paganini <paganini AT paganini DOT net>
 
 package main
 
