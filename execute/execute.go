@@ -207,9 +207,8 @@ func RunCommand(prefix string, cmd []string, log *logger.Logger, ex Executor, ou
 	err := e.Exec(cmd)
 	log.Verbosef(2, "%s Finish: %s\n", prefix, time.Now().Format(time.Stamp))
 	if err != nil {
-		errmsg := fmt.Sprintf("%s returned: %v", prefix, err)
-		log.Verbosef(1, "%s\n", errmsg)
-		return fmt.Errorf(errmsg)
+		log.Verbosef(1, "%s returned: %v\n", prefix, err)
+		return err
 	}
 	log.Verbosef(1, "%s: returned: OK\n", prefix)
 	return nil

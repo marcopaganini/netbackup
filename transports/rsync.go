@@ -104,20 +104,20 @@ func (r *RsyncTransport) Run() error {
 
 	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 
-	// Execute the command
-	err = nil
-	if !r.dryRun {
-		err = execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
-		if err != nil {
-			rc := execute.ExitCode(err)
+	if r.dryRun {
+		return nil
+	}
 
-			// Rsync uses retcode 24 to indicate "some files disappeared during
-			// the transfer" which is immaterial for our purposes. Ignore those
-			// cases.
-			if rc == 24 {
-				r.log.Println("Note: rsync returned error 24 (some files disappeared during copy). Ignoring.")
-				err = nil
-			}
+	// Execute the command
+	err = execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
+	if err != nil {
+		// Rsync uses retcode 24 to indicate "some files disappeared during
+		// the transfer" which is immaterial for our purposes. Ignore those
+		// cases.
+		rc := execute.ExitCode(err)
+		if rc == 24 {
+			r.log.Println("Note: rsync returned error 24 (some files disappeared during copy). Ignoring.")
+			err = nil
 		}
 	}
 	return err
