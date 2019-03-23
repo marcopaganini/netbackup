@@ -111,7 +111,7 @@ func (r *ResticTransport) Run() error {
 
 // makeResticCmd creates a basic restic command with the binary and extra options.
 func (r *ResticTransport) makeResticCmd() []string {
-	cmd := []string{resticCmd, "-v"}
+	cmd := []string{resticCmd, "-v", "-v"}
 
 	// Add exclude, if defined.
 	if r.excludeFile != "" {
