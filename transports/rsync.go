@@ -116,7 +116,6 @@ func (r *RsyncTransport) Run() error {
 		// cases.
 		rc := execute.ExitCode(err)
 		if rc == 24 {
-			r.log.Println("Note: rsync returned error 24 (some files disappeared during copy). Ignoring.")
 			err = nil
 		}
 	}
