@@ -84,14 +84,12 @@ func (r *RdiffBackupTransport) Run() error {
 	}
 	defer os.Remove(r.includeFile)
 
-	// Build the full rclone command line
-	cmd := []string{
-		rdiffBackupCmd,
-		"--verbosity=5",
-		"--terminal-verbosity=5",
-		"--preserve-numerical-ids",
-		"--exclude-sockets",
-		"--force"}
+	// Build the full rdiff-backup command line.
+	cmd := []string{rdiffBackupCmd}
+	if r.config.CustomBin != "" {
+		cmd = strings.Split(r.config.CustomBin, " ")
+	}
+	cmd = append(cmd, "--verbosity=5", "--terminal-verbosity=5", "--preserve-numerical-ids", "--exclude-sockets", "--force")
 
 	if r.excludeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--exclude-globbing-filelist=%s", r.excludeFile))

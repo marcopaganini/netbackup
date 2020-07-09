@@ -80,7 +80,12 @@ func (r *ResticTransport) Run() error {
 	}
 	defer os.Remove(r.excludeFile)
 
-	cmd := r.makeResticCmd()
+	// Make restic command-line.
+	resticBin := resticCmd
+	if r.config.CustomBin != "" {
+		resticBin = r.config.CustomBin
+	}
+	cmd := r.makeResticCmd(resticBin)
 	cmd = append(cmd, "backup", r.config.SourceDir)
 
 	// Add to list of commands.
@@ -88,7 +93,7 @@ func (r *ResticTransport) Run() error {
 
 	// Create expiration command, if required.
 	if r.config.ExpireDays != 0 {
-		cmd = r.makeResticCmd()
+		cmd = r.makeResticCmd(resticBin)
 		cmd = append(cmd, []string{"forget", fmt.Sprintf("--keep-within=%dd", r.config.ExpireDays), "--prune"}...)
 		cmds = append(cmds, cmd)
 	}
@@ -110,8 +115,9 @@ func (r *ResticTransport) Run() error {
 }
 
 // makeResticCmd creates a basic restic command with the binary and extra options.
-func (r *ResticTransport) makeResticCmd() []string {
-	cmd := []string{resticCmd, "-v", "-v"}
+func (r *ResticTransport) makeResticCmd(resticBin string) []string {
+	cmd := strings.Split(resticBin, " ")
+	cmd = append(cmd, "-v", "-v")
 
 	// Add exclude, if defined.
 	if r.excludeFile != "" {

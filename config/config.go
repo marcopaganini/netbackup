@@ -36,6 +36,7 @@ type Config struct {
 	Include            []string `toml:"include" delim:" "`
 	LogDir             string   `toml:"log_dir"`
 	Logfile            string   `toml:"log_file"`
+	CustomBin          string   `toml:"custom_bin"`
 	// LUKS specific options
 	LuksDestDev string `toml:"luks_dest_dev"`
 	LuksKeyFile string `toml:"luks_keyfile"`

@@ -66,7 +66,11 @@ func (r *RcloneTransport) Run() error {
 	defer os.Remove(r.includeFile)
 
 	// Build the full rclone command line
-	cmd := []string{rcloneCmd, "sync", "-v"}
+	cmd := []string{rcloneCmd}
+	if r.config.CustomBin != "" {
+		cmd = strings.Split(r.config.CustomBin, " ")
+	}
+	cmd = append(cmd, "sync", "-v")
 
 	if r.excludeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--exclude-from=%s", r.excludeFile))
