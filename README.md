@@ -1,6 +1,6 @@
 # netbackup
 
-[![Build Status](https://travis-ci.org/marcopaganini/netbackup.svg?branch=master)](https://travis-ci.org/marcopaganini/netbackup)
+[![Code tests](https://github.com/marcopaganini/netbackup/workflows/Code%20Tests/badge.svg)]
 
 ## Introduction
 
