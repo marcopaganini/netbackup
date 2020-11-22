@@ -1,6 +1,6 @@
 # netbackup
 
-[![Code tests](https://github.com/marcopaganini/netbackup/workflows/Code%20Tests/badge.svg)]
+![Code tests](https://github.com/marcopaganini/netbackup/workflows/Code%20Tests/badge.svg)
 
 ## Introduction
 
