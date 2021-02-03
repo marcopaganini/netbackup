@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	rsyncTestCmd = "rsync -avXH --delete --numeric-ids"
+	rsyncTestCmd = "rsync -avAXH --delete --numeric-ids"
 )
 
 func TestRsync(t *testing.T) {
@@ -116,7 +116,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --exclude-from=[^ ]+ --delete-excluded --include-from=[^ ]+ /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --include-from=[^ ]+ --exclude-from=[^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
 		},
 		// Test that an empty source dir results in error.
 		{
