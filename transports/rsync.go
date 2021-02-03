@@ -66,32 +66,39 @@ func (r *RsyncTransport) checkConfig() error {
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (r *RsyncTransport) Run() error {
-	// Create exclude/include lists, if needed
-	err := r.createExcludeFile(r.config.Exclude)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(r.excludeFile)
-
-	err = r.createIncludeFile(r.config.Include)
+	// Create include lists, if needed.
+	err := r.createIncludeFile(r.config.Include)
 	if err != nil {
 		return err
 	}
 	defer os.Remove(r.includeFile)
+
+	err = r.createExcludeFile(r.config.Exclude)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(r.excludeFile)
 
 	// Build the full rsync command line
 	cmd := []string{rsyncCmd}
 	if r.config.CustomBin != "" {
 		cmd = strings.Split(r.config.CustomBin, " ")
 	}
-	cmd = append(cmd, "-avXH", "--delete", "--numeric-ids")
+	cmd = append(cmd, "-avAXH", "--delete", "--numeric-ids")
 
+	// Include file must appear *before* exclude. This allows us to include
+	// directories selectively, such as:
+	//
+	// include = "*/"     <-- Every directory under root.
+	// include = "/home/" <-- Include /home
+	// exclude = "*"      <-- Exclude everything else.
+
+	if r.includeFile != "" {
+		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
+	}
 	if r.excludeFile != "" {
 		cmd = append(cmd, fmt.Sprintf("--exclude-from=%s", r.excludeFile))
 		cmd = append(cmd, "--delete-excluded")
-	}
-	if r.includeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
 	}
 	cmd = append(cmd, r.config.ExtraArgs...)
 
