@@ -45,6 +45,9 @@ type Backup struct {
 }
 
 var (
+	// This is filled by go build -ldflags during build.
+	Build string
+
 	// Generic logging object
 	log *logger.Logger
 )
@@ -304,6 +307,12 @@ func main() {
 	// Parse command line flags and read config file.
 	if err := parseFlags(); err != nil {
 		log.Fatalf("Error: %v\n", err)
+	}
+
+	// If version request, just print version and exit.
+	if opt.version {
+		fmt.Printf("Version (Build): %s\n", Build)
+		os.Exit(0)
 	}
 
 	// Set verbose level
