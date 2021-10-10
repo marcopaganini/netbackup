@@ -21,6 +21,7 @@ type cmdLineOpts struct {
 	config  string
 	dryrun  bool
 	verbose multiLevelInt
+	version bool
 }
 
 var (
@@ -59,10 +60,11 @@ func parseFlags() error {
 	flag.BoolVar(&opt.dryrun, "n", defaultOptDryRun, "Dry-run mode (shorthand)")
 	flag.Var(&opt.verbose, "verbose", "Verbose mode (use multiple times to increase level)")
 	flag.Var(&opt.verbose, "v", "Verbose mode (use multiple times to increase level)")
+	flag.BoolVar(&opt.version, "version", false, "Show version (build) number and exit")
 	flag.Parse()
 
 	// Config is mandatory
-	if opt.config == "" {
+	if opt.config == "" && !opt.version {
 		usage()
 		return fmt.Errorf("Configuration file must be specified with --config=config_filename")
 	}
