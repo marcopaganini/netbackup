@@ -5,9 +5,10 @@
 package transports
 
 import (
+	"testing"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"testing"
 )
 
 func TestRclone(t *testing.T) {
@@ -82,7 +83,7 @@ func TestRclone(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v --exclude-from=[^ ]+ /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone sync -v --filter-from=[^ ]+ /tmp/a /tmp/b"},
 		},
 		// include: list only
 		{
@@ -92,7 +93,7 @@ func TestRclone(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v --include-from=[^ ]+ /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone sync -v --filter-from=[^ ]+ /tmp/a /tmp/b"},
 		},
 		// include: & exclude: lists
 		{
@@ -103,7 +104,7 @@ func TestRclone(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v --exclude-from=[^ ]+ --include-from=[^ ]+ /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone sync -v --filter-from=[^ ]+ /tmp/a /tmp/b"},
 		},
 		// Test that an empty source dir results in an error
 		{

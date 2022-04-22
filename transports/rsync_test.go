@@ -5,9 +5,10 @@
 package transports
 
 import (
+	"testing"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"testing"
 )
 
 const (
@@ -95,7 +96,7 @@ func TestRsync(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --exclude-from=[^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --filter=\\. [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
 		},
 		// Include list only.
 		{
@@ -105,7 +106,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --include-from=[^ ]+ /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --filter=\\. [^ ]+ /tmp/a/ /tmp/b"},
 		},
 		// Include & Exclude lists.
 		{
@@ -116,7 +117,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --include-from=[^ ]+ --exclude-from=[^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --filter=\\. [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
 		},
 		// Test that an empty source dir results in error.
 		{
