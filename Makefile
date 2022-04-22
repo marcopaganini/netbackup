@@ -3,7 +3,7 @@
 bin := netbackup
 bindir := /usr/local/bin
 archdir := arch
-src := $(wildcard *.go)
+src := $(wildcard *.go */*.go)
 git_tag := $(shell git describe --always --tags)
 
 # Default target

@@ -8,11 +8,12 @@ package transports
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"os"
-	"strings"
 )
 
 const (
@@ -52,19 +53,6 @@ func NewRcloneTransport(config *config.Config, ex execute.Executor, log *logger.
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (r *RcloneTransport) Run() error {
-	// Create exclude/include lists, if needed
-	err := r.createExcludeFile(r.config.Exclude)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(r.excludeFile)
-
-	err = r.createIncludeFile(r.config.Include)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(r.includeFile)
-
 	// Build the full rclone command line
 	cmd := []string{rcloneCmd}
 	if r.config.CustomBin != "" {
@@ -72,11 +60,14 @@ func (r *RcloneTransport) Run() error {
 	}
 	cmd = append(cmd, "sync", "-v")
 
-	if r.excludeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--exclude-from=%s", r.excludeFile))
-	}
-	if r.includeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
+	// Create filter file, if needed.
+	if len(r.config.Exclude) > 0 || len(r.config.Include) > 0 {
+		filterFile, err := r.createFilterFile(r.config.Include, r.config.Exclude)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(filterFile)
+		cmd = append(cmd, fmt.Sprintf("--filter-from=%s", filterFile))
 	}
 	cmd = append(cmd, r.config.ExtraArgs...)
 

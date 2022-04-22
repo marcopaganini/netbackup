@@ -45,7 +45,7 @@ type Backup struct {
 }
 
 var (
-	// This is filled by go build -ldflags during build.
+	// Build is filled by go build -ldflags during build.
 	Build string
 
 	// Generic logging object

@@ -8,11 +8,12 @@ package transports
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"os"
-	"strings"
 )
 
 const (
@@ -66,19 +67,6 @@ func (r *RsyncTransport) checkConfig() error {
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (r *RsyncTransport) Run() error {
-	// Create include lists, if needed.
-	err := r.createIncludeFile(r.config.Include)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(r.includeFile)
-
-	err = r.createExcludeFile(r.config.Exclude)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(r.excludeFile)
-
 	// Build the full rsync command line
 	cmd := []string{rsyncCmd}
 	if r.config.CustomBin != "" {
@@ -86,26 +74,24 @@ func (r *RsyncTransport) Run() error {
 	}
 	cmd = append(cmd, "-avAXH", "--delete", "--numeric-ids")
 
-	// Include file must appear *before* exclude. This allows us to include
-	// directories selectively, such as:
-	//
-	// include = "*/"     <-- Every directory under root.
-	// include = "/home/" <-- Include /home
-	// exclude = "*"      <-- Exclude everything else.
-
-	if r.includeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--include-from=%s", r.includeFile))
+	// Create filter file, if needed.
+	if len(r.config.Include) > 0 || len(r.config.Exclude) > 0 {
+		filterFile, err := r.createFilterFile(r.config.Include, r.config.Exclude)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(filterFile)
+		// Merge the filter file in the filter specification.
+		cmd = append(cmd, fmt.Sprintf("--filter=. %s", filterFile))
 	}
-	if r.excludeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--exclude-from=%s", r.excludeFile))
+	if len(r.config.Exclude) > 0 {
 		cmd = append(cmd, "--delete-excluded")
 	}
 	cmd = append(cmd, r.config.ExtraArgs...)
 
-	// In rsync, the source needs to ends with a slash or the
-	// source directory will be created inside the destination.
-	// The exception are the cases where the source already ends
-	// in a slash (ex: /)
+	// In rsync, the source needs to ends with a slash or the source directory
+	// will be created inside the destination.  The exception are the cases
+	// where the source already ends in a slash (ex: /)
 	src := r.buildSource(":")
 	if !strings.HasSuffix(src, "/") {
 		src = src + "/"
@@ -120,7 +106,7 @@ func (r *RsyncTransport) Run() error {
 	}
 
 	// Execute the command
-	err = execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
+	err := execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
 	if err != nil {
 		// Rsync uses retcode 24 to indicate "some files disappeared during
 		// the transfer" which is immaterial for our purposes. Ignore those

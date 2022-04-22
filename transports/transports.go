@@ -9,11 +9,12 @@ package transports
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"io/ioutil"
-	"os"
 )
 
 // Transport represents all transports
@@ -108,6 +109,33 @@ func (t *Transport) createIncludeFile(paths []string) error {
 	}
 	t.includeFile = fname
 	return nil
+}
+
+// createFilterFile creates a filter file, in the rsync/rclone style, with the
+// include and exclude patterns and returns the filename.
+func (t *Transport) createFilterFile(include, exclude []string) (string, error) {
+	if len(include) == 0 && len(exclude) == 0 {
+		return "", nil
+	}
+	// Create filter list.
+	var filter []string
+	for _, v := range include {
+		filter = append(filter, "+ "+v)
+	}
+	for _, v := range exclude {
+		filter = append(filter, "- "+v)
+	}
+
+	fname, err := writeList("filter", filter)
+	if err != nil {
+		return "", err
+	}
+	t.log.Verbosef(2, "Filter file: %q\n", fname)
+	// Display file contents to log if dryRun mode
+	if t.dryRun {
+		displayFile(t.log, fname)
+	}
+	return fname, nil
 }
 
 // buildSource creates the backup source based on the source host and path.
