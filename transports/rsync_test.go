@@ -96,7 +96,7 @@ func TestRsync(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --filter=\\. [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --filter=merge [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
 		},
 		// Include list only.
 		{
@@ -106,7 +106,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --filter=\\. [^ ]+ /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --filter=merge [^ ]+ /tmp/a/ /tmp/b"},
 		},
 		// Include & Exclude lists.
 		{
@@ -117,7 +117,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --filter=\\. [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
+			expectCmds: []string{rsyncTestCmd + " --filter=merge [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
 		},
 		// Test that an empty source dir results in error.
 		{

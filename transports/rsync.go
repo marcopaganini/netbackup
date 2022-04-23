@@ -82,7 +82,7 @@ func (r *RsyncTransport) Run() error {
 		}
 		defer os.Remove(filterFile)
 		// Merge the filter file in the filter specification.
-		cmd = append(cmd, fmt.Sprintf("--filter=. %s", filterFile))
+		cmd = append(cmd, fmt.Sprintf("--filter=merge %s", filterFile))
 	}
 	if len(r.config.Exclude) > 0 {
 		cmd = append(cmd, "--delete-excluded")
