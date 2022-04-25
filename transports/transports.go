@@ -19,12 +19,10 @@ import (
 
 // Transport represents all transports
 type Transport struct {
-	config      *config.Config
-	execute     execute.Executor
-	log         *logger.Logger
-	dryRun      bool
-	excludeFile string
-	includeFile string
+	config  *config.Config
+	execute execute.Executor
+	log     *logger.Logger
+	dryRun  bool
 }
 
 // writeList writes the desired list of exclusions/inclusions into a file, in a
@@ -74,41 +72,38 @@ func (t *Transport) checkConfig() error {
 
 // createExcludeFile creates a file with the list of patterns to be excluded.
 // The file is only created if config.Exclude is set.
-func (t *Transport) createExcludeFile(paths []string) error {
+func (t *Transport) createExcludeFile(paths []string) (string, error) {
 	if len(t.config.Exclude) == 0 {
-		return nil
+		return "", nil
 	}
 	fname, err := writeList("exclude", paths)
 	if err != nil {
-		return err
+		return "", err
 	}
 	t.log.Verbosef(2, "Exclude file: %q\n", fname)
 	// Display file contents to log if dryRun mode
 	if t.dryRun {
 		displayFile(t.log, fname)
 	}
-	t.excludeFile = fname
-
-	return nil
+	return fname, nil
 }
 
 // createIncludeFile creates a file with the list of patterns to be included.
 // The file is only created if config.Include is set.
-func (t *Transport) createIncludeFile(paths []string) error {
+func (t *Transport) createIncludeFile(paths []string) (string, error) {
 	if len(t.config.Include) == 0 {
-		return nil
+		return "", nil
 	}
 	fname, err := writeList("include", paths)
 	if err != nil {
-		return err
+		return "", err
 	}
 	t.log.Verbosef(2, "Include file: %q\n", fname)
 	// Display file contents to log if dryRun mode
 	if t.dryRun {
 		displayFile(t.log, fname)
 	}
-	t.includeFile = fname
-	return nil
+	return fname, nil
 }
 
 // createFilterFile creates a filter file, in the rsync/rclone style, with the

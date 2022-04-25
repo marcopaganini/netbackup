@@ -9,11 +9,12 @@ package transports
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
 	"github.com/marcopaganini/netbackup/execute"
-	"os"
-	"strings"
 )
 
 const (
@@ -72,17 +73,17 @@ func (r *RdiffBackupTransport) Run() error {
 	var cmds [][]string
 
 	// Create exclude/include lists, if needed
-	err := r.createExcludeFile(r.config.Exclude)
+	excludeFile, err := r.createExcludeFile(r.config.Exclude)
 	if err != nil {
 		return err
 	}
-	defer os.Remove(r.excludeFile)
+	defer os.Remove(excludeFile)
 
-	err = r.createIncludeFile(r.config.Include)
+	includeFile, err := r.createIncludeFile(r.config.Include)
 	if err != nil {
 		return err
 	}
-	defer os.Remove(r.includeFile)
+	defer os.Remove(includeFile)
 
 	// Build the full rdiff-backup command line.
 	cmd := []string{rdiffBackupCmd}
@@ -91,11 +92,11 @@ func (r *RdiffBackupTransport) Run() error {
 	}
 	cmd = append(cmd, "--verbosity=5", "--terminal-verbosity=5", "--preserve-numerical-ids", "--exclude-sockets", "--force")
 
-	if r.excludeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--exclude-globbing-filelist=%s", r.excludeFile))
+	if len(r.config.Exclude) != 0 {
+		cmd = append(cmd, fmt.Sprintf("--exclude-globbing-filelist=%s", excludeFile))
 	}
-	if r.includeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--include-globbing-filelist=%s", r.includeFile))
+	if len(r.config.Include) != 0 {
+		cmd = append(cmd, fmt.Sprintf("--include-globbing-filelist=%s", includeFile))
 	}
 	cmd = append(cmd, r.config.ExtraArgs...)
 
