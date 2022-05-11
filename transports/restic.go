@@ -7,6 +7,7 @@
 package transports
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -26,10 +27,9 @@ type ResticTransport struct {
 }
 
 // NewResticTransport creates a new Transport object for restic.
-func NewResticTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*ResticTransport, error) {
+func NewResticTransport(config *config.Config, ex execute.Executor, dryRun bool) (*ResticTransport, error) {
 	t := &ResticTransport{}
 	t.config = config
-	t.log = log
 	t.dryRun = dryRun
 
 	// If execute object is nil, create a new one
@@ -69,13 +69,15 @@ func (r *ResticTransport) checkConfig() error {
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
-func (r *ResticTransport) Run() error {
+func (r *ResticTransport) Run(ctx context.Context) error {
+	log := logger.LoggerValue(ctx)
+
 	// Cmds contains multiple commands to be executed.
 	// Failure in one command will stop the chain of executions.
 	var cmds [][]string
 
 	// Create exclude list, if needed.
-	excludeFile, err := r.createExcludeFile(r.config.Exclude)
+	excludeFile, err := r.createExcludeFile(ctx, r.config.Exclude)
 	if err != nil {
 		return err
 	}
@@ -100,13 +102,13 @@ func (r *ResticTransport) Run() error {
 	}
 
 	for i, c := range cmds {
-		r.log.Verbosef(1, "Command(%d/%d): %s\n", i+1, len(cmds), strings.Join(c, " "))
+		log.Verbosef(1, "Command(%d/%d): %s\n", i+1, len(cmds), strings.Join(c, " "))
 	}
 
 	// Execute the command(s)
 	if !r.dryRun {
 		for _, c := range cmds {
-			err := execute.RunCommand("RESTIC", c, r.log, r.execute, nil, nil)
+			err := execute.RunCommand(ctx, "RESTIC", c, r.execute, nil, nil)
 			if err != nil {
 				return err
 			}

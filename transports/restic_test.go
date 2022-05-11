@@ -5,9 +5,11 @@
 package transports
 
 import (
+	"context"
+	"testing"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"testing"
 )
 
 func TestRestic(t *testing.T) {
@@ -112,6 +114,8 @@ func TestRestic(t *testing.T) {
 		fakeExecute := NewFakeExecute()
 
 		log := logger.New("")
+		ctx := context.Background()
+		logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,
@@ -126,7 +130,7 @@ func TestRestic(t *testing.T) {
 		}
 
 		// Create a new restic object with our fakeExecute and a sinking outLogWriter.
-		restic, err := NewResticTransport(cfg, fakeExecute, log, tt.dryRun)
+		restic, err := NewResticTransport(cfg, fakeExecute, tt.dryRun)
 		if tt.wantError && err != nil {
 			continue
 		}
@@ -134,7 +138,7 @@ func TestRestic(t *testing.T) {
 			t.Fatalf("NewResticTransport failed: %v", err)
 		}
 
-		if err := restic.Run(); err != nil {
+		if err := restic.Run(ctx); err != nil {
 			t.Fatalf("restic.Run failed: %v", err)
 		}
 		if !tt.wantError {

@@ -5,9 +5,11 @@
 package transports
 
 import (
+	"context"
+	"testing"
+
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
-	"testing"
 )
 
 const (
@@ -146,6 +148,8 @@ func TestRdiffBackup(t *testing.T) {
 		fakeExecute := NewFakeExecute()
 
 		log := logger.New("")
+		ctx := context.Background()
+		logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,
@@ -169,7 +173,7 @@ func TestRdiffBackup(t *testing.T) {
 			t.Fatalf("NewRdiffBackupTransport failed: %v", err)
 		}
 
-		if err := rdiffBackup.Run(); err != nil {
+		if err := rdiffBackup.Run(ctx); err != nil {
 			t.Fatalf("rdiffBackup.Run failed: %v", err)
 		}
 		if !tt.wantError {

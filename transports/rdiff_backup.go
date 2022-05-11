@@ -8,6 +8,7 @@
 package transports
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -27,10 +28,9 @@ type RdiffBackupTransport struct {
 }
 
 // NewRdiffBackupTransport creates a new Transport object for rdiff-backup.
-func NewRdiffBackupTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*RdiffBackupTransport, error) {
+func NewRdiffBackupTransport(config *config.Config, ex execute.Executor, dryRun bool) (*RdiffBackupTransport, error) {
 	t := &RdiffBackupTransport{}
 	t.config = config
-	t.log = log
 	t.dryRun = dryRun
 
 	// If execute object is nil, create a new one
@@ -67,19 +67,21 @@ func (r *RdiffBackupTransport) checkConfig() error {
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
-func (r *RdiffBackupTransport) Run() error {
+func (r *RdiffBackupTransport) Run(ctx context.Context) error {
+	log := logger.LoggerValue(ctx)
+
 	// Cmds contains multiple commands to be executed.
 	// Failure in one command will stop the chain of executions.
 	var cmds [][]string
 
 	// Create exclude/include lists, if needed
-	excludeFile, err := r.createExcludeFile(r.config.Exclude)
+	excludeFile, err := r.createExcludeFile(ctx, r.config.Exclude)
 	if err != nil {
 		return err
 	}
 	defer os.Remove(excludeFile)
 
-	includeFile, err := r.createIncludeFile(r.config.Include)
+	includeFile, err := r.createIncludeFile(ctx, r.config.Include)
 	if err != nil {
 		return err
 	}
@@ -128,13 +130,13 @@ func (r *RdiffBackupTransport) Run() error {
 		"/.gvfs"}
 
 	for i, c := range cmds {
-		r.log.Verbosef(1, "Command(%d/%d): %s\n", i+1, len(cmds), strings.Join(c, " "))
+		log.Verbosef(1, "Command(%d/%d): %s\n", i+1, len(cmds), strings.Join(c, " "))
 	}
 
 	// Execute the command(s)
 	if !r.dryRun {
 		for _, c := range cmds {
-			err := execute.RunCommand("RDIFF-BACKUP", c, r.log, r.execute, spam, spam)
+			err := execute.RunCommand(ctx, "RDIFF-BACKUP", c, r.execute, spam, spam)
 			if err != nil {
 				return err
 			}

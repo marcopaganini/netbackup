@@ -7,6 +7,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -39,7 +40,6 @@ const (
 
 // Backup contains information for a given backup instance.
 type Backup struct {
-	log    *logger.Logger
 	config *config.Config
 	dryRun bool
 }
@@ -53,17 +53,16 @@ var (
 )
 
 // NewBackup creates a new Backup instance.
-func NewBackup(config *config.Config, log *logger.Logger, dryRun bool) *Backup {
+func NewBackup(config *config.Config, dryRun bool) *Backup {
 	// Create new Backup and execute.
 	return &Backup{
-		log:    log,
 		config: config,
 		dryRun: opt.dryrun}
 }
 
 // mountDev mounts the destination device into a temporary mount point and
 // returns the mount point name.
-func (b *Backup) mountDev() (string, error) {
+func (b *Backup) mountDev(ctx context.Context) (string, error) {
 	tmpdir, err := ioutil.TempDir("", "netbackup_mount")
 	if err != nil {
 		return "", fmt.Errorf("unable to create temp directory: %v", err)
@@ -72,7 +71,7 @@ func (b *Backup) mountDev() (string, error) {
 	// We use the mount command instead of the mount syscall as it makes
 	// simpler to specify defaults in /etc/fstab.
 	cmd := []string{mountCmd, b.config.DestDev, tmpdir}
-	if err := execute.Run("MOUNT", cmd, b.log); err != nil {
+	if err := execute.Run(ctx, "MOUNT", cmd); err != nil {
 		return "", err
 	}
 
@@ -80,14 +79,14 @@ func (b *Backup) mountDev() (string, error) {
 }
 
 // umountDev dismounts the destination device specified in config.DestDev.
-func (b *Backup) umountDev() error {
+func (b *Backup) umountDev(ctx context.Context) error {
 	cmd := []string{umountCmd, b.config.DestDev}
-	return execute.Run("UMOUNT", cmd, b.log)
+	return execute.Run(ctx, "UMOUNT", cmd)
 }
 
 // openLuks opens the luks destination device into a temporary /dev/mapper
 // device file and returns the /dev/mapper device filename.
-func (b *Backup) openLuks() (string, error) {
+func (b *Backup) openLuks(ctx context.Context) (string, error) {
 	// Our temporary dev/mapper device is based on the config name
 	devname := "netbackup_" + b.config.Name
 	devfile := filepath.Join(devMapperDir, devname)
@@ -106,7 +105,7 @@ func (b *Backup) openLuks() (string, error) {
 	cmd = append(cmd, b.config.LuksDestDev)
 	cmd = append(cmd, devname)
 
-	if err := execute.Run("LUKS_OPEN", cmd, b.log); err != nil {
+	if err := execute.Run(ctx, "LUKS_OPEN", cmd); err != nil {
 		return "", err
 	}
 
@@ -114,31 +113,31 @@ func (b *Backup) openLuks() (string, error) {
 }
 
 // closeLuks closes the current destination device.
-func (b *Backup) closeLuks() error {
+func (b *Backup) closeLuks(ctx context.Context) error {
 	// cryptsetup luksClose needs the /dev/mapper device name.
 	cmd := []string{cryptSetupCmd, "luksClose", b.config.DestDev}
-	return execute.Run("LUKS_CLOSE", cmd, b.log)
+	return execute.Run(ctx, "LUKS_CLOSE", cmd)
 }
 
 // cleanFilesystem runs fsck to make sure the filesystem under config.dest_dev is
 // intact, and sets the number of times to check to 0 and the last time
 // checked to now. This option should only be used in EXTn filesystems or
 // filesystems that support tunefs.
-func (b *Backup) cleanFilesystem() error {
+func (b *Backup) cleanFilesystem(ctx context.Context) error {
 	// fsck (read-only check)
 	cmd := []string{fsckCmd, "-n", b.config.DestDev}
-	if err := execute.Run("FS_CLEANUP", cmd, b.log); err != nil {
+	if err := execute.Run(ctx, "FS_CLEANUP", cmd); err != nil {
 		return fmt.Errorf("error running %q: %v", cmd, err)
 	}
 	// Tunefs
 	cmd = []string{tunefsCmd, "-C", "0", "-T", "now", b.config.DestDev}
-	return execute.Run("FS_CLEANUP", cmd, b.log)
+	return execute.Run(ctx, "FS_CLEANUP", cmd)
 }
 
 // Run executes the backup according to the config file and options.
-func (b *Backup) Run() error {
+func (b *Backup) Run(ctx context.Context) error {
 	var transp interface {
-		Run() error
+		Run(context.Context) error
 	}
 
 	// If we're running in dry-run mode, we set dummy values for DestDev if
@@ -173,7 +172,7 @@ func (b *Backup) Run() error {
 
 		// Open LUKS device, if needed
 		if b.config.LuksDestDev != "" {
-			devfile, err := b.openLuks()
+			devfile, err := b.openLuks(ctx)
 			if err != nil {
 				return fmt.Errorf("Error opening LUKS device %q: %v", b.config.LuksDestDev, err)
 			}
@@ -183,20 +182,20 @@ func (b *Backup) Run() error {
 			b.config.DestDev = devfile
 
 			// close luks device at the end
-			defer b.closeLuks()
+			defer b.closeLuks(ctx)
 			defer time.Sleep(2 * time.Second)
 		}
 
 		// Run cleanup on fs prior to backup, if requested.
 		if b.config.FSCleanup {
-			if err := b.cleanFilesystem(); err != nil {
+			if err := b.cleanFilesystem(ctx); err != nil {
 				return fmt.Errorf("Error performing pre-backup cleanup on %q: %v", b.config.DestDev, err)
 			}
 		}
 
 		// Mount destination device, if needed.
 		if b.config.DestDev != "" {
-			tmpdir, err := b.mountDev()
+			tmpdir, err := b.mountDev(ctx)
 			if err != nil {
 				return fmt.Errorf("Error opening destination device %q: %v", b.config.DestDev, err)
 			}
@@ -206,7 +205,7 @@ func (b *Backup) Run() error {
 
 			// umount destination filesystem and remove temp mount point.
 			defer os.Remove(b.config.DestDir)
-			defer b.umountDev()
+			defer b.umountDev(ctx)
 			// For some reason, not having a pause before attempting to unmount
 			// can generate a race condition where umount complains that the fs
 			// is busy (even though the transport is already down.)
@@ -219,13 +218,13 @@ func (b *Backup) Run() error {
 	// Create new transport based on config.Transport
 	switch b.config.Transport {
 	case "rclone":
-		transp, err = transports.NewRcloneTransport(b.config, nil, b.log, b.dryRun)
+		transp, err = transports.NewRcloneTransport(b.config, nil, b.dryRun)
 	case "rdiff-backup":
-		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.log, b.dryRun)
+		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.dryRun)
 	case "restic":
-		transp, err = transports.NewResticTransport(b.config, nil, b.log, b.dryRun)
+		transp, err = transports.NewResticTransport(b.config, nil, b.dryRun)
 	case "rsync":
-		transp, err = transports.NewRsyncTransport(b.config, nil, b.log, b.dryRun)
+		transp, err = transports.NewRsyncTransport(b.config, nil, b.dryRun)
 	default:
 		return fmt.Errorf("Unknown transport %q", b.config.Transport)
 	}
@@ -235,19 +234,19 @@ func (b *Backup) Run() error {
 
 	// Execute pre-commands, if any.
 	if b.config.PreCommand != "" && !b.dryRun {
-		if err := execute.Run("PRE", execute.WithShell(b.config.PreCommand), b.log); err != nil {
+		if err := execute.Run(ctx, "PRE", execute.WithShell(b.config.PreCommand)); err != nil {
 			return fmt.Errorf("Error running pre-command: %v", err)
 		}
 	}
 
 	// Make it so...
-	if err := transp.Run(); err != nil {
+	if err := transp.Run(ctx); err != nil {
 		return fmt.Errorf("Error running backup: %v", err)
 	}
 
 	// Execute post-commands, if any.
 	if b.config.PostCommand != "" && !b.dryRun {
-		if err := execute.Run("POST", execute.WithShell(b.config.PostCommand), b.log); err != nil {
+		if err := execute.Run(ctx, "POST", execute.WithShell(b.config.PostCommand)); err != nil {
 			return fmt.Errorf("Error running post-command (possible backup failure): %v", err)
 		}
 	}
@@ -300,8 +299,8 @@ func isMounted(dirname string) (bool, error) {
 	return false, nil
 }
 
-// main
 func main() {
+	ctx := context.Background()
 	log = logger.New("")
 
 	// Parse command line flags and read config file.
@@ -315,13 +314,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Set verbose level
-	verbose := int(opt.verbose)
-	if verbose > 0 {
-		log.SetVerboseLevel(verbose)
-	}
-
-	// Open and parse config file
+	// Open and parse config file.
 	cfg, err := os.Open(opt.config)
 	if err != nil {
 		log.Fatalf("Unable to open config file: %v\n", err)
@@ -331,6 +324,11 @@ func main() {
 		log.Fatalf("Configuration error in %q: %v\n", opt.config, err)
 	}
 
+	// Set log output and all other log related parameters.
+	verbose := int(opt.verbose)
+	if verbose > 0 {
+		log.SetVerboseLevel(verbose)
+	}
 	// Create output log. Use the name specified in the config, if any,
 	// or create a "standard" name using the backup name and date.
 	logFilename := config.Logfile
@@ -346,14 +344,17 @@ func main() {
 	// Configure log to log everything to stderr and outLog
 	log.SetMirrorOutput(outLog)
 
+	// Add Logger to context.
+	ctx = logger.WithLogger(ctx, log)
+
 	if opt.dryrun {
 		log.Verboseln(1, "Warning: Dry-Run mode. Won't execute any commands.")
 	}
 
 	// Create new Backup and execute.
-	b := NewBackup(config, log, opt.dryrun)
+	b := NewBackup(config, opt.dryrun)
 
-	if err = b.Run(); err != nil {
+	if err = b.Run(ctx); err != nil {
 		log.Fatalln(err)
 	}
 	log.Verboseln(1, "*** Backup Result: Success")

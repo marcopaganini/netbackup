@@ -7,6 +7,7 @@
 package transports
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -26,10 +27,9 @@ type RcloneTransport struct {
 }
 
 // NewRcloneTransport creates a new Transport object for rclone.
-func NewRcloneTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*RcloneTransport, error) {
+func NewRcloneTransport(config *config.Config, ex execute.Executor, dryRun bool) (*RcloneTransport, error) {
 	t := &RcloneTransport{}
 	t.config = config
-	t.log = log
 	t.dryRun = dryRun
 
 	// If execute object is nil, create a new one
@@ -52,7 +52,9 @@ func NewRcloneTransport(config *config.Config, ex execute.Executor, log *logger.
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
-func (r *RcloneTransport) Run() error {
+func (r *RcloneTransport) Run(ctx context.Context) error {
+	log := logger.LoggerValue(ctx)
+
 	// Build the full rclone command line
 	cmd := []string{rcloneCmd}
 	if r.config.CustomBin != "" {
@@ -62,7 +64,7 @@ func (r *RcloneTransport) Run() error {
 
 	// Create filter file, if needed.
 	if len(r.config.Exclude) > 0 || len(r.config.Include) > 0 {
-		filterFile, err := r.createFilterFile(r.config.Include, r.config.Exclude)
+		filterFile, err := r.createFilterFile(ctx, r.config.Include, r.config.Exclude)
 		if err != nil {
 			return err
 		}
@@ -74,11 +76,11 @@ func (r *RcloneTransport) Run() error {
 	cmd = append(cmd, r.buildSource(":"))
 	cmd = append(cmd, r.buildDest(":"))
 
-	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
+	log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 
 	// Execute the command
 	if !r.dryRun {
-		return execute.RunCommand("RCLONE", cmd, r.log, r.execute, nil, nil)
+		return execute.RunCommand(ctx, "RCLONE", cmd, r.execute, nil, nil)
 	}
 	return nil
 }

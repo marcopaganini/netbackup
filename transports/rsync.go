@@ -7,6 +7,7 @@
 package transports
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -26,10 +27,9 @@ type RsyncTransport struct {
 }
 
 // NewRsyncTransport creates a new Transport object for rsync.
-func NewRsyncTransport(config *config.Config, ex execute.Executor, log *logger.Logger, dryRun bool) (*RsyncTransport, error) {
+func NewRsyncTransport(config *config.Config, ex execute.Executor, dryRun bool) (*RsyncTransport, error) {
 	t := &RsyncTransport{}
 	t.config = config
-	t.log = log
 	t.dryRun = dryRun
 
 	// If execute object is nil, create a new one
@@ -66,7 +66,9 @@ func (r *RsyncTransport) checkConfig() error {
 // and removed at the end of execution. If dryRun is set, just output the
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
-func (r *RsyncTransport) Run() error {
+func (r *RsyncTransport) Run(ctx context.Context) error {
+	log := logger.LoggerValue(ctx)
+
 	// Build the full rsync command line
 	cmd := []string{rsyncCmd}
 	if r.config.CustomBin != "" {
@@ -76,7 +78,7 @@ func (r *RsyncTransport) Run() error {
 
 	// Create filter file, if needed.
 	if len(r.config.Include) > 0 || len(r.config.Exclude) > 0 {
-		filterFile, err := r.createFilterFile(r.config.Include, r.config.Exclude)
+		filterFile, err := r.createFilterFile(ctx, r.config.Include, r.config.Exclude)
 		if err != nil {
 			return err
 		}
@@ -99,14 +101,14 @@ func (r *RsyncTransport) Run() error {
 	cmd = append(cmd, src)
 	cmd = append(cmd, r.buildDest(":"))
 
-	r.log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
+	log.Verbosef(1, "Command: %s\n", strings.Join(cmd, " "))
 
 	if r.dryRun {
 		return nil
 	}
 
 	// Execute the command
-	err := execute.RunCommand("RSYNC", cmd, r.log, r.execute, nil, nil)
+	err := execute.RunCommand(ctx, "RSYNC", cmd, r.execute, nil, nil)
 	if err != nil {
 		// Rsync uses retcode 24 to indicate "some files disappeared during
 		// the transfer" which is immaterial for our purposes. Ignore those

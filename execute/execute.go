@@ -9,14 +9,16 @@ package execute
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"github.com/marcopaganini/logger"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/marcopaganini/logger"
 )
 
 // CallbackFunc represents callback functions functions for stdout/stderr output
@@ -163,8 +165,8 @@ func WithShell(cmd string) []string {
 // supplied logger object. This is a convenience function around RunCommand,
 // since most command invocations don't need the extra functionality supplied
 // by that function.
-func Run(prefix string, cmd []string, log *logger.Logger) error {
-	return RunCommand(prefix, cmd, log, nil, nil, nil)
+func Run(ctx context.Context, prefix string, cmd []string) error {
+	return RunCommand(ctx, prefix, cmd, nil, nil, nil)
 }
 
 // RunCommand executes the given command using the supplied Execute object. The
@@ -173,7 +175,9 @@ func Run(prefix string, cmd []string, log *logger.Logger) error {
 // HMS. If the Execute object is nil, a new one will be created. outFilter and
 // errFilter contain optional slices of substrings which, if matched, will
 // cause the entire line to be excluded from the output.
-func RunCommand(prefix string, cmd []string, log *logger.Logger, ex Executor, outFilter []string, errFilter []string) error {
+func RunCommand(ctx context.Context, prefix string, cmd []string, ex Executor, outFilter []string, errFilter []string) error {
+	log := logger.LoggerValue(ctx)
+
 	log.Verbosef(2, "%s Start: %s\n", prefix, time.Now().Format(time.Stamp))
 	log.Verbosef(1, "%s Command: %q\n", prefix, strings.Join(cmd, " "))
 

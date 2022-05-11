@@ -5,12 +5,15 @@
 package transports
 
 import (
-	"github.com/marcopaganini/netbackup/execute"
+	"context"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/marcopaganini/logger"
+	"github.com/marcopaganini/netbackup/execute"
 )
 
 // This file contains all the shared infrastructure required for the transports
@@ -43,8 +46,12 @@ func (f *FakeExecute) Exec(a []string) error {
 
 // Test writeList
 func TestWriteList(t *testing.T) {
+	log := logger.New("")
+	ctx := context.Background()
+	logger.WithLogger(ctx, log)
+
 	items := []string{"aa", "aa/01", "aa/02", "bb"}
-	fname, err := writeList("fakename", items)
+	fname, err := writeList(ctx, "fakename", items)
 	if err != nil {
 		t.Fatalf("writeList failed: %v", err)
 	}

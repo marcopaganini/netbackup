@@ -5,6 +5,7 @@
 package transports
 
 import (
+	"context"
 	"testing"
 
 	"github.com/marcopaganini/logger"
@@ -128,6 +129,8 @@ func TestRclone(t *testing.T) {
 		fakeExecute := NewFakeExecute()
 
 		log := logger.New("")
+		ctx := context.Background()
+		logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,
@@ -142,7 +145,7 @@ func TestRclone(t *testing.T) {
 		}
 
 		// Create a new transport object with our fakeExecute and a sinking outLogWriter.
-		rclone, err := NewRcloneTransport(cfg, fakeExecute, log, tt.dryRun)
+		rclone, err := NewRcloneTransport(cfg, fakeExecute, tt.dryRun)
 		if tt.wantError && err != nil {
 			continue
 		}
@@ -150,7 +153,7 @@ func TestRclone(t *testing.T) {
 			t.Fatalf("NewRcloneTransport failed: %v", err)
 		}
 
-		if err = rclone.Run(); err != nil {
+		if err = rclone.Run(ctx); err != nil {
 			t.Fatalf("rclone.Run failed: %v", err)
 		}
 		if !tt.wantError {

@@ -5,6 +5,7 @@
 package transports
 
 import (
+	"context"
 	"testing"
 
 	"github.com/marcopaganini/logger"
@@ -141,6 +142,8 @@ func TestRsync(t *testing.T) {
 		fakeExecute := NewFakeExecute()
 
 		log := logger.New("")
+		ctx := context.Background()
+		logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,
@@ -155,7 +158,7 @@ func TestRsync(t *testing.T) {
 		}
 
 		// Create a new rsync object with our fakeExecute and a sinking outLogWriter.
-		rsync, err := NewRsyncTransport(cfg, fakeExecute, log, tt.dryRun)
+		rsync, err := NewRsyncTransport(cfg, fakeExecute, tt.dryRun)
 		if tt.wantError && err != nil {
 			continue
 		}
@@ -163,7 +166,7 @@ func TestRsync(t *testing.T) {
 			t.Fatalf("NewRsyncTransport failed: %v", err)
 		}
 
-		if err := rsync.Run(); err != nil {
+		if err := rsync.Run(ctx); err != nil {
 			t.Fatalf("rsync.Run failed: %v", err)
 		}
 		if !tt.wantError {

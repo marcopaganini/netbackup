@@ -8,6 +8,7 @@ package transports
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,16 +22,16 @@ import (
 type Transport struct {
 	config  *config.Config
 	execute execute.Executor
-	log     *logger.Logger
 	dryRun  bool
 }
 
 // writeList writes the desired list of exclusions/inclusions into a file, in a
 // format suitable for this transport. The caller is responsible for deleting
 // the file after use. Returns the name of the file and error.
-func writeList(prefix string, patterns []string) (string, error) {
+func writeList(ctx context.Context, prefix string, patterns []string) (string, error) {
 	var w *os.File
 	var err error
+	log := logger.LoggerValue(ctx)
 
 	if w, err = ioutil.TempFile("/tmp", prefix); err != nil {
 		return "", fmt.Errorf("Error creating pattern file for %s list: %v", prefix, err)
@@ -39,18 +40,22 @@ func writeList(prefix string, patterns []string) (string, error) {
 	for _, v := range patterns {
 		fmt.Fprintln(w, v)
 	}
+
+	log.Verbosef(3, "Contents of %q file:\n", prefix)
+	displayFile(ctx, w.Name())
 	return w.Name(), nil
 }
 
 // displayFile opens the specified file and output all lines in it using the
 // log object.
-func displayFile(log *logger.Logger, fname string) error {
+func displayFile(ctx context.Context, fname string) error {
 	r, err := os.Open(fname)
 	if err != nil {
 		return fmt.Errorf("error opening %q: %v", fname, err)
 	}
 	defer r.Close()
 
+	log := logger.LoggerValue(ctx)
 	log.Verbosef(3, "Contents of %q:\n", fname)
 	s := bufio.NewScanner(r)
 	for s.Scan() {
@@ -72,43 +77,49 @@ func (t *Transport) checkConfig() error {
 
 // createExcludeFile creates a file with the list of patterns to be excluded.
 // The file is only created if config.Exclude is set.
-func (t *Transport) createExcludeFile(paths []string) (string, error) {
+func (t *Transport) createExcludeFile(ctx context.Context, paths []string) (string, error) {
+	log := logger.LoggerValue(ctx)
+
 	if len(t.config.Exclude) == 0 {
 		return "", nil
 	}
-	fname, err := writeList("exclude", paths)
+	fname, err := writeList(ctx, "exclude", paths)
 	if err != nil {
 		return "", err
 	}
-	t.log.Verbosef(2, "Exclude file: %q\n", fname)
+	log.Verbosef(2, "Exclude file: %q\n", fname)
 	// Display file contents to log if dryRun mode
 	if t.dryRun {
-		displayFile(t.log, fname)
+		displayFile(ctx, fname)
 	}
 	return fname, nil
 }
 
 // createIncludeFile creates a file with the list of patterns to be included.
 // The file is only created if config.Include is set.
-func (t *Transport) createIncludeFile(paths []string) (string, error) {
+func (t *Transport) createIncludeFile(ctx context.Context, paths []string) (string, error) {
+	log := logger.LoggerValue(ctx)
+
 	if len(t.config.Include) == 0 {
 		return "", nil
 	}
-	fname, err := writeList("include", paths)
+	fname, err := writeList(ctx, "include", paths)
 	if err != nil {
 		return "", err
 	}
-	t.log.Verbosef(2, "Include file: %q\n", fname)
+	log.Verbosef(2, "Include file: %q\n", fname)
 	// Display file contents to log if dryRun mode
 	if t.dryRun {
-		displayFile(t.log, fname)
+		displayFile(ctx, fname)
 	}
 	return fname, nil
 }
 
 // createFilterFile creates a filter file, in the rsync/rclone style, with the
 // include and exclude patterns and returns the filename.
-func (t *Transport) createFilterFile(include, exclude []string) (string, error) {
+func (t *Transport) createFilterFile(ctx context.Context, include, exclude []string) (string, error) {
+	log := logger.LoggerValue(ctx)
+
 	if len(include) == 0 && len(exclude) == 0 {
 		return "", nil
 	}
@@ -121,14 +132,14 @@ func (t *Transport) createFilterFile(include, exclude []string) (string, error) 
 		filter = append(filter, "- "+v)
 	}
 
-	fname, err := writeList("filter", filter)
+	fname, err := writeList(ctx, "filter", filter)
 	if err != nil {
 		return "", err
 	}
-	t.log.Verbosef(2, "Filter file: %q\n", fname)
+	log.Verbosef(2, "Filter file: %q\n", fname)
 	// Display file contents to log if dryRun mode
 	if t.dryRun {
-		displayFile(t.log, fname)
+		displayFile(ctx, fname)
 	}
 	return fname, nil
 }
@@ -163,6 +174,6 @@ func (t *Transport) buildDest(separator string) string {
 // to stderr. Note that this is the generic form which only outputs an error.
 // It needs to be overridden to something useful in structs that embed the
 // Transport structure.
-func (t *Transport) Run() error {
+func (t *Transport) Run(ctx context.Context) error {
 	return fmt.Errorf("internal error: Attempted to execute generic Run method")
 }

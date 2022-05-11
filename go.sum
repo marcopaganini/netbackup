@@ -4,3 +4,9 @@ github.com/marcopaganini/logger v0.0.0-20171210184725-15beec631d3e h1:9a/S/4srxL
 github.com/marcopaganini/logger v0.0.0-20171210184725-15beec631d3e/go.mod h1:b1Rp64A7UlbIlLjg3V65t/NFRRTkmhrm06+QstnQJRo=
 github.com/marcopaganini/logger v0.1.0 h1:NQhfnUGIxvA4cE1H3SXB3cBof2vEVURgVrZKef3Mxoo=
 github.com/marcopaganini/logger v0.1.0/go.mod h1:T/hVVIfV/lgkMPXyGzzGo86fC83BgltnNX0FMvIAlu4=
+github.com/marcopaganini/logger v0.1.1 h1:Sk5+wKsM2htqf9oq6X9+kNcBovFlHGdAteyROSr7JD8=
+github.com/marcopaganini/logger v0.1.1/go.mod h1:T/hVVIfV/lgkMPXyGzzGo86fC83BgltnNX0FMvIAlu4=
+github.com/marcopaganini/logger v0.1.2 h1:K4uStpilfOjBnaWLmha6vqXnWPbVAj8znYpbtRd1Dgw=
+github.com/marcopaganini/logger v0.1.2/go.mod h1:T/hVVIfV/lgkMPXyGzzGo86fC83BgltnNX0FMvIAlu4=
+github.com/marcopaganini/logger v0.2.0 h1:OC7LhRG1dRz4SpQdOyFXna38cv71b4DFv0Y2UWsNZz8=
+github.com/marcopaganini/logger v0.2.0/go.mod h1:T/hVVIfV/lgkMPXyGzzGo86fC83BgltnNX0FMvIAlu4=
