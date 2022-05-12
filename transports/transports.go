@@ -56,7 +56,6 @@ func displayFile(ctx context.Context, fname string) error {
 	defer r.Close()
 
 	log := logger.LoggerValue(ctx)
-	log.Verbosef(3, "Contents of %q:\n", fname)
 	s := bufio.NewScanner(r)
 	for s.Scan() {
 		log.Verboseln(3, s.Text())
@@ -73,46 +72,6 @@ func (t *Transport) checkConfig() error {
 		return fmt.Errorf("Config error: DestDir is empty")
 	}
 	return nil
-}
-
-// createExcludeFile creates a file with the list of patterns to be excluded.
-// The file is only created if config.Exclude is set.
-func (t *Transport) createExcludeFile(ctx context.Context, paths []string) (string, error) {
-	log := logger.LoggerValue(ctx)
-
-	if len(t.config.Exclude) == 0 {
-		return "", nil
-	}
-	fname, err := writeList(ctx, "exclude", paths)
-	if err != nil {
-		return "", err
-	}
-	log.Verbosef(2, "Exclude file: %q\n", fname)
-	// Display file contents to log if dryRun mode
-	if t.dryRun {
-		displayFile(ctx, fname)
-	}
-	return fname, nil
-}
-
-// createIncludeFile creates a file with the list of patterns to be included.
-// The file is only created if config.Include is set.
-func (t *Transport) createIncludeFile(ctx context.Context, paths []string) (string, error) {
-	log := logger.LoggerValue(ctx)
-
-	if len(t.config.Include) == 0 {
-		return "", nil
-	}
-	fname, err := writeList(ctx, "include", paths)
-	if err != nil {
-		return "", err
-	}
-	log.Verbosef(2, "Include file: %q\n", fname)
-	// Display file contents to log if dryRun mode
-	if t.dryRun {
-		displayFile(ctx, fname)
-	}
-	return fname, nil
 }
 
 // createFilterFile creates a filter file, in the rsync/rclone style, with the
@@ -155,7 +114,7 @@ func (t *Transport) buildSource(separator string) string {
 	return src
 }
 
-// buildDest creates the backup destinatino based on the destination host and
+// buildDest creates the backup destination based on the destination host and
 // path.  The default is [desthost:<separator>]destpath. The default separator
 // is ":".
 func (t *Transport) buildDest(separator string) string {

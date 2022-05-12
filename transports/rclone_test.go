@@ -130,7 +130,7 @@ func TestRclone(t *testing.T) {
 
 		log := logger.New("")
 		ctx := context.Background()
-		logger.WithLogger(ctx, log)
+		ctx = logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,

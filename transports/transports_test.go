@@ -48,7 +48,7 @@ func (f *FakeExecute) Exec(a []string) error {
 func TestWriteList(t *testing.T) {
 	log := logger.New("")
 	ctx := context.Background()
-	logger.WithLogger(ctx, log)
+	ctx = logger.WithLogger(ctx, log)
 
 	items := []string{"aa", "aa/01", "aa/02", "bb"}
 	fname, err := writeList(ctx, "fakename", items)

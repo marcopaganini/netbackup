@@ -149,7 +149,7 @@ func TestRdiffBackup(t *testing.T) {
 
 		log := logger.New("")
 		ctx := context.Background()
-		logger.WithLogger(ctx, log)
+		ctx = logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,
@@ -165,7 +165,7 @@ func TestRdiffBackup(t *testing.T) {
 		}
 
 		// Create a new transport object with our fakeExecute and a sinking outLogWriter.
-		rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, log, tt.dryRun)
+		rdiffBackup, err := NewRdiffBackupTransport(cfg, fakeExecute, tt.dryRun)
 		if tt.wantError && err != nil {
 			continue
 		}

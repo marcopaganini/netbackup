@@ -70,25 +70,42 @@ func (r *ResticTransport) checkConfig() error {
 // command to be executed and the contents of the exclusion and inclusion lists
 // to stderr.
 func (r *ResticTransport) Run(ctx context.Context) error {
+	var (
+		// Cmds contains multiple commands to be executed.
+		// Failure in one command will stop the chain of executions.
+		cmds [][]string
+
+		excludeFile string
+	)
+
 	log := logger.LoggerValue(ctx)
 
-	// Cmds contains multiple commands to be executed.
-	// Failure in one command will stop the chain of executions.
-	var cmds [][]string
-
-	// Create exclude list, if needed.
-	excludeFile, err := r.createExcludeFile(ctx, r.config.Exclude)
-	if err != nil {
-		return err
+	// Create exclude file list, if needed.
+	if len(r.config.Exclude) != 0 {
+		excludeFile, err := writeList(ctx, "exclude", r.config.Exclude)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(excludeFile)
 	}
-	defer os.Remove(excludeFile)
 
-	// Make restic command-line.
+	// Generate restic command-line.
+	// restic -v -v [--exclude-file=<file>] [extra_args] --repo <destination_repo> backup <sourcedir>
+
 	resticBin := resticCmd
 	if r.config.CustomBin != "" {
 		resticBin = r.config.CustomBin
 	}
-	cmd := r.makeResticCmd(resticBin, excludeFile)
+
+	cmd := strings.Split(resticBin, " ")
+	cmd = append(cmd, "-v", "-v")
+
+	if len(r.config.Exclude) != 0 {
+		cmd = append(cmd, fmt.Sprintf("--exclude-file=%s", excludeFile))
+	}
+
+	cmd = append(cmd, r.config.ExtraArgs...)
+	cmd = append(cmd, []string{"--repo", r.buildDest(":")}...)
 	cmd = append(cmd, "backup", r.config.SourceDir)
 
 	// Add to list of commands.
@@ -96,7 +113,6 @@ func (r *ResticTransport) Run(ctx context.Context) error {
 
 	// Create expiration command, if required.
 	if r.config.ExpireDays != 0 {
-		cmd = r.makeResticCmd(resticBin, excludeFile)
 		cmd = append(cmd, []string{"forget", fmt.Sprintf("--keep-within=%dd", r.config.ExpireDays), "--prune"}...)
 		cmds = append(cmds, cmd)
 	}
@@ -115,21 +131,4 @@ func (r *ResticTransport) Run(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-// makeResticCmd creates a basic restic command with the binary and extra options.
-func (r *ResticTransport) makeResticCmd(resticBin, excludeFile string) []string {
-	cmd := strings.Split(resticBin, " ")
-	cmd = append(cmd, "-v", "-v")
-
-	// Add exclude, if defined.
-	if excludeFile != "" {
-		cmd = append(cmd, fmt.Sprintf("--exclude-file=%s", excludeFile))
-	}
-
-	cmd = append(cmd, r.config.ExtraArgs...)
-
-	// Add destination repository.
-	cmd = append(cmd, []string{"-r", r.buildDest(":")}...)
-	return cmd
 }

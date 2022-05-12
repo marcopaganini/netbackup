@@ -43,7 +43,7 @@ func TestRestic(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "restic",
 			logfile:    "/dev/null",
-			expectCmds: []string{"restic -v -v -r /tmp/b backup /tmp/a"},
+			expectCmds: []string{"restic -v -v --repo /tmp/b backup /tmp/a"},
 		},
 
 		// Local source, remote destination.
@@ -54,7 +54,7 @@ func TestRestic(t *testing.T) {
 			destHost:   "desthost",
 			transport:  "restic",
 			logfile:    "/dev/null",
-			expectCmds: []string{"restic -v -v -r desthost:/tmp/b backup /tmp/a"},
+			expectCmds: []string{"restic -v -v --repo desthost:/tmp/b backup /tmp/a"},
 		},
 
 		// Remote source, local destination (error, unsupported).
@@ -88,7 +88,7 @@ func TestRestic(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "restic",
 			logfile:    "/dev/null",
-			expectCmds: []string{"restic -v -v --exclude-file=[^ ]* -r /tmp/b backup /tmp/a"},
+			expectCmds: []string{"restic -v -v --exclude-file=[^ ]* --repo /tmp/b backup /tmp/a"},
 		},
 
 		// Test that an empty source dir results in error.
@@ -115,7 +115,7 @@ func TestRestic(t *testing.T) {
 
 		log := logger.New("")
 		ctx := context.Background()
-		logger.WithLogger(ctx, log)
+		ctx = logger.WithLogger(ctx, log)
 
 		cfg := &config.Config{
 			Name:       tt.name,

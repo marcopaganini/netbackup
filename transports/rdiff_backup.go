@@ -70,22 +70,33 @@ func (r *RdiffBackupTransport) checkConfig() error {
 func (r *RdiffBackupTransport) Run(ctx context.Context) error {
 	log := logger.LoggerValue(ctx)
 
-	// Cmds contains multiple commands to be executed.
-	// Failure in one command will stop the chain of executions.
-	var cmds [][]string
+	var (
+		// Cmds contains multiple commands to be executed.
+		// Failure in one command will stop the chain of executions.
+		cmds [][]string
 
-	// Create exclude/include lists, if needed
-	excludeFile, err := r.createExcludeFile(ctx, r.config.Exclude)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(excludeFile)
+		excludeFile string
+		includeFile string
+		err         error
+	)
 
-	includeFile, err := r.createIncludeFile(ctx, r.config.Include)
-	if err != nil {
-		return err
+	// Create exclude file list, if needed.
+	if len(r.config.Exclude) != 0 {
+		excludeFile, err = writeList(ctx, "exclude", r.config.Exclude)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(excludeFile)
 	}
-	defer os.Remove(includeFile)
+
+	// Create include file list, if needed.
+	if len(r.config.Include) != 0 {
+		includeFile, err = writeList(ctx, "include", r.config.Include)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(includeFile)
+	}
 
 	// Build the full rdiff-backup command line.
 	cmd := []string{rdiffBackupCmd}
