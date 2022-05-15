@@ -204,7 +204,7 @@ func RunCommand(ctx context.Context, prefix string, cmd []string, ex Executor, o
 		return nil
 	}
 
-	// All streams copied to output log with "PRE:" as a prefix.
+	// All streams copied to output log with date as a prefix.
 	e.SetStderr(errFilterFunc)
 	e.SetStdout(outFilterFunc)
 

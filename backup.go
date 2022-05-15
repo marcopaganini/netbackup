@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/marcopaganini/netbackup/config"
@@ -205,21 +207,44 @@ func (b *Backup) Run(ctx context.Context) error {
 		return fmt.Errorf("Error creating %s transport: %v", b.config.Transport, err)
 	}
 
+	preCmdPresent := (b.config.PreCommand != "" && !b.dryRun)
+	failCmdPresent := (b.config.FailCommand != "" && !b.dryRun)
+	postCmdPresent := (b.config.PostCommand != "" && !b.dryRun)
+
 	// Execute pre-commands, if any.
-	if b.config.PreCommand != "" && !b.dryRun {
-		if err := execute.Run(ctx, "PRE", execute.WithShell(b.config.PreCommand)); err != nil {
+	if preCmdPresent {
+		if err := execute.Run(ctx, "PRE-COMMAND", execute.WithShell(b.config.PreCommand)); err != nil {
 			return fmt.Errorf("Error running pre-command: %v", err)
 		}
 	}
 
-	// Make it so...
-	if err := transp.Run(ctx); err != nil {
-		return fmt.Errorf("Error running backup: %v", err)
+	// Ignore interrupt signals and run the backup transport. If the user hits
+	// Ctrl-C at this point (for example), both this process and the spawned
+	// transport will receive SIGINT, and this will cause the transport to fail
+	// and report error, but this program to be interrupted before it has a
+	// chance to run FailCommand.
+	signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
+	err = transp.Run(ctx)
+	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+
+	// Execute post-commands if OK, or fail-command in case of failure.
+	if err != nil {
+		errbackup := err
+
+		log.Verbosef(1, "Error running backup: %v\n", err)
+
+		if failCmdPresent {
+			log.Verbosef(1, "Running fail-command on backup error: %q\n", b.config.FailCommand)
+			if err := execute.Run(ctx, "FAIL-COMMAND", execute.WithShell(b.config.FailCommand)); err != nil {
+				log.Verbosef(1, "Error running fail-command: %v\n", err)
+			}
+		}
+		return errbackup
 	}
 
-	// Execute post-commands, if any.
-	if b.config.PostCommand != "" && !b.dryRun {
-		if err := execute.Run(ctx, "POST", execute.WithShell(b.config.PostCommand)); err != nil {
+	// No errors.
+	if postCmdPresent {
+		if err := execute.Run(ctx, "POST-COMMAND", execute.WithShell(b.config.PostCommand)); err != nil {
 			return fmt.Errorf("Error running post-command (possible backup failure): %v", err)
 		}
 	}

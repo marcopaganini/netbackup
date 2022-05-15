@@ -6,9 +6,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/BurntSushi/toml"
 	"io"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 const (
@@ -31,6 +32,7 @@ type Config struct {
 	PreCommand         string   `toml:"pre_command"`
 	SourceIsMountPoint bool     `toml:"source_is_mountpoint"`
 	PostCommand        string   `toml:"post_command"`
+	FailCommand        string   `toml:"fail_command"`
 	Transport          string   `toml:"transport"`
 	Exclude            []string `toml:"exclude" delim:" "`
 	Include            []string `toml:"include" delim:" "`
