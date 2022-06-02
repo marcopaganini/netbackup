@@ -45,15 +45,17 @@ Uses [rclone](http://rclone.org/) to copy files. This is the transport of choice
 
 ## Running netbackup
 
-Most of the configuration of netbackup goes into a ini style configuration file, and a typical run of netbackup is something like:
+Most of the configuration of netbackup goes into a ini style configuration file. Values can be specified with or without quotes. Options with multiple values work as a JSON array of strings (E.g.: `include=["/a", "/b"]`.
+
+A typical run of netbackup is something like:
 
 ```bash
 $ netbackup --config=backup_config.conf
 ```
 
-Typing `netbackup` alone will show a short usage help. The options should be self-explanatory.
+The idea is to have multiple config files, one for each backup.
 
-The configuration parser is based on [go-ini](http://github.com/go-ini/ini) and very flexible. Values can be specified with or without quotes. Options with multiple values work as a JSON array of strings (E.g.: `include=["/a", "/b"]`.
+Typing `netbackup` alone will show a short usage help. The options should be self-explanatory.
 
 To show the commands without actually executing them, use the `--dry-run` command-line option (or its abbreviated form, `-n`).
 
@@ -224,15 +226,15 @@ The name of the transport (rsync, rclone, rdiff-backup, restic).
 
 ### source_host (string)
 
-The name of the source host. Use this option to make backups of remote hosts into the current one. Netbackup uses SSH to reach the source host.
+The name of the source host. Use this option to make backups of remote hosts into the current one. Netbackup uses SSH to reach the source host, if this option is present.
 
 ### dest_host (string)
 
-The name of the destination host. If this option to make backups of the local host into remote hosts. Netbackup uses SSH to reach the destination host.
+The name of the destination host. If this option to make backups of the local host into remote hosts. Netbackup uses SSH to reach the destination host, if this option is present.
 
 ### source_dir (string, mandatory)
 
-Source directory. Combine with `source_host` to copy from remote hosts into the local host. Must be specified.
+Source directory. Combine with `source_host` to copy from remote hosts into the local host.
 
 ### dest_dir / dest_dev (string, mandatory)
 
@@ -326,3 +328,7 @@ The directory where netbackup will save the command output. The files are named 
 ### logfile (string)
 
 Override the automatic filename generation and logging directory. Netbackup will send output directly into this file.
+
+## Suggestions and bug reports
+
+Feel free to open bug reports or suggest features in the [Issues](https://github.com/marcopaganini/netbackup/issues) page. PRs are always welcome, but please discuss your feature/bugfix first by creating an issue.
