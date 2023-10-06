@@ -2,3 +2,5 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/marcopaganini/logger v0.1.2 h1:K4uStpilfOjBnaWLmha6vqXnWPbVAj8znYpbtRd1Dgw=
 github.com/marcopaganini/logger v0.1.2/go.mod h1:T/hVVIfV/lgkMPXyGzzGo86fC83BgltnNX0FMvIAlu4=
+github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
+github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=

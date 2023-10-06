@@ -17,6 +17,7 @@ import (
 
 	"github.com/marcopaganini/logger"
 	"github.com/marcopaganini/netbackup/config"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -40,9 +41,50 @@ var (
 	// Build is filled by go build -ldflags during build.
 	Build string
 
-	// Generic logging object
+	// Generic logging object.
 	log *logger.Logger
+
+	// Command-line options.
+	opt struct {
+		config  string
+		dryrun  bool
+		help    bool
+		verbose int
+		version bool
+	}
 )
+
+// Returns a formatted error message including the program's usage.
+func usage() {
+	fmt.Printf("netbackup version %s\n\n", Build)
+	fmt.Printf("Usage %s:\n", os.Args[0])
+	pflag.PrintDefaults()
+	fmt.Println("")
+}
+
+// Parse the command line and set the global opt variable. Return error if the
+// basic sanity checking of flags fails.
+func parseFlags() error {
+	// Parse command line
+	pflag.StringVarP(&opt.config, "config", "c", "", "Config File")
+	pflag.BoolVarP(&opt.dryrun, "dry-run", "n", false, "Dry-run mode")
+	pflag.BoolVarP(&opt.dryrun, "help", "h", false, "Quick help")
+	pflag.CountVarP(&opt.verbose, "verbose", "v", "Verbose mode (use multiple times to increase level)")
+	pflag.BoolVarP(&opt.version, "version", "V", false, "Show version (build) number and exit")
+	pflag.Parse()
+
+	// Help
+	if opt.help {
+		usage()
+	}
+
+	// Config is mandatory
+	if opt.config == "" && !opt.version {
+		usage()
+		return fmt.Errorf("Configuration file must be specified with --config=config_filename")
+	}
+	return nil
+}
 
 // logPath constructs the name for the output log using the the name and
 // the current system date.
