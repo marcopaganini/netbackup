@@ -34,7 +34,7 @@ func errcheck(ch chan error) error {
 	var saved error
 	for i := 0; i < numRecords; i++ {
 		err := <-ch
-		if err != nil && saved != nil {
+		if err != nil && saved == nil {
 			saved = err
 		}
 	}
@@ -98,9 +98,9 @@ func TestMulti(t *testing.T) {
 	generate(tmpfile, ch)
 
 	if err := errcheck(ch); err != nil {
-		t.Errorf("TestMulti: error writing textfile: %v", err)
+		t.Fatalf("TestMulti/errcheck: %v", err)
 	}
 	if err := filecheck(t, tmpfile); err != nil {
-		t.Errorf("TestMulti: file contents error: %v", err)
+		t.Fatalf("TestMulti/filecheck: %v", err)
 	}
 }
