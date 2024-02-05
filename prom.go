@@ -28,9 +28,10 @@ import (
 // conditions when modifying to the original file. All writes go into a
 // temporary file that is atomically renamed to the final name once work is
 // done.
-func writeNodeTextFile(filename string, name string) error {
-	dirname, fname := filepath.Split(filename)
+func writeNodeTextFile(textfile string, name string) error {
+	dirname, fname := filepath.Split(textfile)
 
+	// Create a textfile under /tmp and Flock it.
 	lockfile := filepath.Join("/tmp", fname+".lock")
 	lock, err := os.OpenFile(lockfile, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
@@ -43,8 +44,8 @@ func writeNodeTextFile(filename string, name string) error {
 	}
 	defer syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)
 
-	// Read contents from original filename.
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
+	// Read contents from original textfile.
+	file, err := os.OpenFile(textfile, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return fmt.Errorf("error opening textfile: %v", err)
 	}
@@ -86,7 +87,6 @@ func writeNodeTextFile(filename string, name string) error {
 	if dirname == "" {
 		tempdir = "./"
 	}
-
 	temp, err := os.CreateTemp(tempdir, fname)
 	if err != nil {
 		return fmt.Errorf("error creating temp file: %v", err)
@@ -103,7 +103,7 @@ func writeNodeTextFile(filename string, name string) error {
 	}
 	temp.Close()
 
-	if err := os.Rename(temp.Name(), filename); err != nil {
+	if err := os.Rename(temp.Name(), textfile); err != nil {
 		return fmt.Errorf("error renaming temp file: %v", err)
 	}
 
