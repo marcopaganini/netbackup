@@ -92,6 +92,9 @@ func writeNodeTextFile(filename string, name string) error {
 	}
 	defer os.Remove(temp.Name())
 	defer temp.Close()
+	if err := os.Chmod(temp.Name(), 0644); err != nil {
+		return err
+	}
 
 	_, err = temp.Write(output)
 	if err != nil {
