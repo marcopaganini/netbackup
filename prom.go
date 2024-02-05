@@ -29,12 +29,13 @@ import (
 // temporary file that is atomically renamed to the final name once work is
 // done.
 func writeNodeTextFile(filename string, name string) error {
-	lockfile := filename + ".lock"
-	lock, err := os.Create(lockfile)
+	dirname, fname := filepath.Split(filename)
+
+	lockfile := filepath.Join("/tmp", fname+".lock")
+	lock, err := os.OpenFile(lockfile, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening lockfile: %v", err)
 	}
-	defer os.Remove(lockfile)
 	defer lock.Close()
 
 	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
@@ -45,13 +46,13 @@ func writeNodeTextFile(filename string, name string) error {
 	// Read contents from original filename.
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening textfile: %v", err)
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading file: %v", err)
 	}
 
 	// Rebuild output without any previous lines with the same name
@@ -81,14 +82,14 @@ func writeNodeTextFile(filename string, name string) error {
 	output = append(output, []byte(s)...)
 
 	// Write to temporary file and rename it to the original file name.
-	dirname, fname := filepath.Split(filename)
+	tempdir := dirname
 	if dirname == "" {
-		dirname = "./"
+		tempdir = "./"
 	}
 
-	temp, err := os.CreateTemp(dirname, fname)
+	temp, err := os.CreateTemp(tempdir, fname)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating temp file: %v", err)
 	}
 	defer os.Remove(temp.Name())
 	defer temp.Close()
@@ -98,12 +99,12 @@ func writeNodeTextFile(filename string, name string) error {
 
 	_, err = temp.Write(output)
 	if err != nil {
-		return err
+		return fmt.Errorf("error writing to temp file: %v", err)
 	}
 	temp.Close()
 
 	if err := os.Rename(temp.Name(), filename); err != nil {
-		return err
+		return fmt.Errorf("error renaming temp file: %v", err)
 	}
 
 	return nil
