@@ -34,6 +34,7 @@ func writeNodeTextFile(filename string, name string) error {
 	if err != nil {
 		return err
 	}
+	defer os.Remove(lockfile)
 	defer lock.Close()
 
 	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
