@@ -189,5 +189,13 @@ func main() {
 	if err = b.Run(ctx); err != nil {
 		log.Fatalln(err)
 	}
+	// Save node (prometheus) compatible textfile, if requested.
+	if config.PromTextFile != "" {
+		log.Verbosef(1, "Writing node-exporter (prometheus) textfile to: %s\n", config.PromTextFile)
+		if err := writeNodeTextFile(config.PromTextFile, config.Name); err != nil {
+			log.Verbosef(1, "Warning: Unable to write node (prometheus) textfile: %v\n", err)
+		}
+	}
+
 	log.Verboseln(1, "*** Backup Result: Success")
 }

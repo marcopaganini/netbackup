@@ -302,7 +302,7 @@ exclude = [
 ]
 ```
 
-This will use rsync to *only* copy the contents of the directories above. Notice the use of "***" for rsync.
+This will use rsync to *only* copy the contents of the directories above. Notice the use of `***` for rsync.
 Without this, we'd need to explicitly include the full path to the last directory element. See the rsync(1) manpage for further details.
 
 Another example using rclone:
@@ -328,6 +328,27 @@ The directory where netbackup will save the command output. The files are named 
 ### logfile (string)
 
 Override the automatic filename generation and logging directory. Netbackup will send output directly into this file.
+
+### prometheus_textfile (string)
+
+If set, `netbackup` will generate node-exporter textfile compatible metrics in this file.
+The time series looks like:
+
+```
+backup{name="backupname", job="netbackup", status="success"} <unix_timestamp>
+```
+
+There are some important points to note:
+
+1. You must enable the `textfile` exporter in your `node-exporter` ([documentation](https://github.com/prometheus/node_exporter)).
+   This is usually the default.
+2. The file *must* be in the directory used by `node-exporter` to import textfiles. Under Debian, this is
+   `/var/lib/prometheus/node-exporter`. Other distributions may use a different directory. Check the
+   node-exporter documentation to figure out the correct directory.
+3. The file *must* end in `.prom` and contain the full path. E.g: `/var/lib/prometheus/node-exporter/netbackup.prom`.
+4. To alert on missed backups, create a prometheus alert that fires when the current timestamp minus the
+   timestamp in the timeseries is over the desired threshold (in seconds). I may add an example of this here
+   in the future.
 
 ## Suggestions and bug reports
 

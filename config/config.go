@@ -39,6 +39,7 @@ type Config struct {
 	LogDir             string   `toml:"log_dir"`
 	Logfile            string   `toml:"log_file"`
 	CustomBin          string   `toml:"custom_bin"`
+	PromTextFile       string   `toml:"prometheus_textfile"`
 	// LUKS specific options
 	LuksDestDev string `toml:"luks_dest_dev"`
 	LuksKeyFile string `toml:"luks_keyfile"`
@@ -112,7 +113,7 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("dest_dev must be an absolute path")
 	case config.LuksDestDev != "" && !strings.HasPrefix(config.LuksDestDev, "/"):
 		return nil, fmt.Errorf("dest_luks_dev must be an absolute path")
-	// Specific checks
+	// Specific checks.
 	case config.LuksDestDev != "" && config.LuksKeyFile == "":
 		return nil, fmt.Errorf("dest_luks_dev requires luks_key_file")
 	}
