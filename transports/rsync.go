@@ -1,8 +1,7 @@
-// rsync transport for netbackup
+// This file is part of netbackup, a frontend to simplify periodic backups.
+// For further information, check https://github.com/marcopaganini/netbackup
 //
-// This file is part of netbackup (http://github.com/marcopaganini/netbackup)
-// See instructions in the README.md file that accompanies this program.
-// rsync transport for netbackup
+// (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
 
 package transports
 
