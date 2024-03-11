@@ -7,14 +7,22 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"syscall"
 	"time"
 )
+
+// exists returns true if the file exists, false otherwise.
+func exists(fname string) bool {
+	if _, err := os.Stat(fname); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
+}
 
 // writeNodeTextFile writes a record in a prometheus node-exporter
 // compatible "textfile" format. The record is formatted as:
@@ -44,16 +52,12 @@ func writeNodeTextFile(textfile string, name string) error {
 	}
 	defer syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)
 
-	// Read contents from original textfile.
-	file, err := os.OpenFile(textfile, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		return fmt.Errorf("error opening textfile: %v", err)
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return fmt.Errorf("error reading file: %v", err)
+	data := []byte{}
+	if exists(textfile) {
+		data, err = os.ReadFile(textfile)
+		if err != nil {
+			return fmt.Errorf("error reading textfile: %v", err)
+		}
 	}
 
 	// Rebuild output without any previous lines with the same name
@@ -93,7 +97,7 @@ func writeNodeTextFile(textfile string, name string) error {
 	}
 	defer os.Remove(temp.Name())
 	defer temp.Close()
-	if err := os.Chmod(temp.Name(), 0644); err != nil {
+	if err := os.Chmod(temp.Name(), 0664); err != nil {
 		return err
 	}
 
