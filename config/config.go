@@ -53,7 +53,7 @@ func ParseConfig(r io.Reader) (*Config, error) {
 
 	mdata, err := toml.DecodeReader(r, config)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading config: %v", err)
+		return nil, fmt.Errorf("error loading config: %v", err)
 	}
 	if len(mdata.Undecoded()) != 0 {
 		keys := []string{}
@@ -104,7 +104,7 @@ func ParseConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("fs_cleanup can only be used when destination is a filesystem")
 	// We can only check if source is a mount point for local backups.
 	case config.SourceHost != "" && config.SourceIsMountPoint:
-		return nil, fmt.Errorf("Cannot validate if source is a mountpoint with remote backups")
+		return nil, fmt.Errorf("cannot validate if source is a mountpoint with remote backups")
 	// Paths must be absolute if we're doing a local backup (no src or dst hosts.)
 	case config.SourceHost == "" && !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")

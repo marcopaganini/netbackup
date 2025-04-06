@@ -50,11 +50,11 @@ func (r *RdiffBackupTransport) checkConfig() error {
 	// Either source host or destination host can be set, not both.
 	switch {
 	case r.config.SourceDir == "":
-		return fmt.Errorf("Config error: SourceDir is empty")
+		return fmt.Errorf("config error: SourceDir is empty")
 	case r.config.DestDir == "":
-		return fmt.Errorf("Config error: DestDir is empty")
+		return fmt.Errorf("config error: DestDir is empty")
 	case r.config.SourceHost != "" && r.config.DestHost != "":
-		return fmt.Errorf("Config error: Cannot have source & dest host set")
+		return fmt.Errorf("config error: Cannot have source & dest host set")
 	}
 	return nil
 }

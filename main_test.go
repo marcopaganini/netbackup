@@ -6,7 +6,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 
 // Test logOpen
 func TestLogOpen(t *testing.T) {
-	w, err := ioutil.TempFile("/tmp/", "test")
+	w, err := os.CreateTemp("/tmp/", "test")
 	if err != nil {
 		t.Fatalf("TempFile failed: %v", err)
 	}
@@ -33,7 +32,7 @@ func TestLogOpen(t *testing.T) {
 	os.Remove(testFname)
 
 	// Test that intermediate directories are created
-	basedir, err := ioutil.TempDir("/tmp", "netbackup_test")
+	basedir, err := os.MkdirTemp("/tmp", "netbackup_test")
 	if err != nil {
 		t.Errorf("error creating temporary dir: %v", err)
 	}

@@ -7,7 +7,6 @@ package transports
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -56,7 +55,8 @@ func TestWriteList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeList failed: %v", err)
 	}
-	contents, err := ioutil.ReadFile(fname)
+	contents, err := os.ReadFile(fname)
+
 	os.Remove(fname)
 	if err != nil {
 		t.Fatalf("Unable to read list file %q: %v", fname, err)

@@ -3,13 +3,14 @@
 //
 // (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
 
+// Package transports handles all transports for netbackup (the actual programs
+// that transfer data).
 package transports
 
 import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/marcopaganini/logger"
@@ -32,8 +33,8 @@ func writeList(ctx context.Context, prefix string, patterns []string) (string, e
 	var err error
 	log := logger.LoggerValue(ctx)
 
-	if w, err = ioutil.TempFile("/tmp", prefix); err != nil {
-		return "", fmt.Errorf("Error creating pattern file for %s list: %v", prefix, err)
+	if w, err = os.CreateTemp("/tmp", prefix); err != nil {
+		return "", fmt.Errorf("error creating pattern file for %s list: %v", prefix, err)
 	}
 	defer w.Close()
 	for _, v := range patterns {
@@ -41,7 +42,7 @@ func writeList(ctx context.Context, prefix string, patterns []string) (string, e
 	}
 
 	log.Verbosef(3, "Contents of %q file:\n", prefix)
-	displayFile(ctx, w.Name())
+	_ = displayFile(ctx, w.Name())
 	return w.Name(), nil
 }
 
@@ -66,9 +67,9 @@ func displayFile(ctx context.Context, fname string) error {
 func (t *Transport) checkConfig() error {
 	switch {
 	case t.config.SourceDir == "":
-		return fmt.Errorf("Config error: SourceDir is empty")
+		return fmt.Errorf("config error: SourceDir is empty")
 	case t.config.DestDir == "":
-		return fmt.Errorf("Config error: DestDir is empty")
+		return fmt.Errorf("config error: DestDir is empty")
 	}
 	return nil
 }
@@ -97,7 +98,7 @@ func (t *Transport) createFilterFile(ctx context.Context, include, exclude []str
 	log.Verbosef(2, "Filter file: %q\n", fname)
 	// Display file contents to log if dryRun mode
 	if t.dryRun {
-		displayFile(ctx, fname)
+		_ = displayFile(ctx, fname)
 	}
 	return fname, nil
 }
@@ -132,6 +133,6 @@ func (t *Transport) buildDest(separator string) string {
 // to stderr. Note that this is the generic form which only outputs an error.
 // It needs to be overridden to something useful in structs that embed the
 // Transport structure.
-func (t *Transport) Run(ctx context.Context) error {
+func (t *Transport) Run(_ context.Context) error {
 	return fmt.Errorf("internal error: Attempted to execute generic Run method")
 }

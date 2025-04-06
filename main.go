@@ -3,12 +3,13 @@
 //
 // (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
 
+// main package.
 package main
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,7 +81,7 @@ func parseFlags() error {
 	// Config is mandatory
 	if opt.config == "" && !opt.version {
 		usage()
-		return fmt.Errorf("Configuration file must be specified with --config=config_filename")
+		return fmt.Errorf("configuration file must be specified with --config=config_filename")
 	}
 	return nil
 }
@@ -116,7 +117,11 @@ func logOpen(path string) (*os.File, error) {
 // isMounted returns true if the specified directory is mounted, false otherwise.
 // This function needs /proc/mounts to work.
 func isMounted(dirname string) (bool, error) {
-	d, err := ioutil.ReadFile("/proc/mounts")
+	r, err := os.Open("/proc/mounts")
+	if err != nil {
+		return false, err
+	}
+	d, err := io.ReadAll(r)
 	if err != nil {
 		return false, err
 	}

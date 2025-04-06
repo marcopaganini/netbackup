@@ -3,12 +3,12 @@
 //
 // (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
 
+// main package.
 package main
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -37,7 +37,7 @@ func NewBackup(config *config.Config, dryRun bool) *Backup {
 // mountDev mounts the destination device into a temporary mount point and
 // returns the mount point name.
 func (b *Backup) mountDev(ctx context.Context) (string, error) {
-	tmpdir, err := ioutil.TempDir("", "netbackup_mount")
+	tmpdir, err := os.MkdirTemp("", "netbackup_mount")
 	if err != nil {
 		return "", fmt.Errorf("unable to create temp directory: %v", err)
 	}
@@ -137,10 +137,10 @@ func (b *Backup) Run(ctx context.Context) error {
 		if b.config.SourceIsMountPoint {
 			mounted, err := isMounted(b.config.SourceDir)
 			if err != nil {
-				return fmt.Errorf("Unable to verify if source_dir is mounted: %v", err)
+				return fmt.Errorf("unable to verify if source_dir is mounted: %v", err)
 			}
 			if !mounted {
-				return fmt.Errorf("SourceDir (%s) should be a mountpoint, but is not mounted", b.config.SourceDir)
+				return fmt.Errorf("source dir (%s) should be a mountpoint, but is not mounted", b.config.SourceDir)
 			}
 		}
 
@@ -148,7 +148,7 @@ func (b *Backup) Run(ctx context.Context) error {
 		if b.config.LuksDestDev != "" {
 			devfile, err := b.openLuks(ctx)
 			if err != nil {
-				return fmt.Errorf("Error opening LUKS device %q: %v", b.config.LuksDestDev, err)
+				return fmt.Errorf("error opening LUKS device %q: %v", b.config.LuksDestDev, err)
 			}
 			// Set the destination device to the /dev/mapper device opened by
 			// LUKS. This should allow the natural processing to mount and
@@ -163,7 +163,7 @@ func (b *Backup) Run(ctx context.Context) error {
 		// Run cleanup on fs prior to backup, if requested.
 		if b.config.FSCleanup {
 			if err := b.cleanFilesystem(ctx); err != nil {
-				return fmt.Errorf("Error performing pre-backup cleanup on %q: %v", b.config.DestDev, err)
+				return fmt.Errorf("error performing pre-backup cleanup on %q: %v", b.config.DestDev, err)
 			}
 		}
 
@@ -171,7 +171,7 @@ func (b *Backup) Run(ctx context.Context) error {
 		if b.config.DestDev != "" {
 			tmpdir, err := b.mountDev(ctx)
 			if err != nil {
-				return fmt.Errorf("Error opening destination device %q: %v", b.config.DestDev, err)
+				return fmt.Errorf("error opening destination device %q: %v", b.config.DestDev, err)
 			}
 			// After we mount the destination device, we set Destdir to that location
 			// so the backup will proceed seamlessly.
@@ -200,10 +200,10 @@ func (b *Backup) Run(ctx context.Context) error {
 	case "rsync":
 		transp, err = transports.NewRsyncTransport(b.config, nil, b.dryRun)
 	default:
-		return fmt.Errorf("Unknown transport %q", b.config.Transport)
+		return fmt.Errorf("unknown transport %q", b.config.Transport)
 	}
 	if err != nil {
-		return fmt.Errorf("Error creating %s transport: %v", b.config.Transport, err)
+		return fmt.Errorf("error creating %s transport: %v", b.config.Transport, err)
 	}
 
 	preCmdPresent := (b.config.PreCommand != "" && !b.dryRun)
@@ -213,7 +213,7 @@ func (b *Backup) Run(ctx context.Context) error {
 	// Execute pre-commands, if any.
 	if preCmdPresent {
 		if err := execute.Run(ctx, "PRE-COMMAND", execute.WithShell(b.config.PreCommand)); err != nil {
-			return fmt.Errorf("Error running pre-command: %v", err)
+			return fmt.Errorf("error running pre-command: %v", err)
 		}
 	}
 
@@ -244,7 +244,7 @@ func (b *Backup) Run(ctx context.Context) error {
 	// No errors.
 	if postCmdPresent {
 		if err := execute.Run(ctx, "POST-COMMAND", execute.WithShell(b.config.PostCommand)); err != nil {
-			return fmt.Errorf("Error running post-command (possible backup failure): %v", err)
+			return fmt.Errorf("error running post-command (possible backup failure): %v", err)
 		}
 	}
 

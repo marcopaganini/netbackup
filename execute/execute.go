@@ -89,11 +89,11 @@ func (e *Execute) Exec(cmd []string) error {
 	// Capture error from streamig goroutine (if any)
 	err = <-outchan
 	if err != nil {
-		return fmt.Errorf("Error reading program's stdout: %v", err)
+		return fmt.Errorf("error reading program's stdout: %v", err)
 	}
 	err = <-errchan
 	if err != nil {
-		return fmt.Errorf("Error reading program's stderr: %v", err)
+		return fmt.Errorf("error reading program's stderr: %v", err)
 	}
 
 	return run.Wait()
