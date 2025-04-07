@@ -41,7 +41,7 @@ func TestCustom(t *testing.T) {
 			transport:       "custom",
 			logfile:         "/dev/null",
 			customCmd:       customTestCmd,
-			expectCmdsRegex: []string{"/bin/bash", "-c", "--", customTestCmd},
+			expectCmdsRegex: []string{"/bin/.*sh", "-c", "--", customTestCmd},
 		},
 		// Test that an empty customCmd results in an error.
 		{
