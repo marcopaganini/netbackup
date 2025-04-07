@@ -44,7 +44,7 @@ func TestRclone(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "/tmp/a", "/tmp/b"},
 		},
 		// Local source, remote destination
 		{
@@ -54,7 +54,7 @@ func TestRclone(t *testing.T) {
 			destHost:   "desthost",
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v /tmp/a desthost:/tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "/tmp/a", "desthost:/tmp/b"},
 		},
 		// Remote source, local destination (unusual)
 		{
@@ -64,7 +64,7 @@ func TestRclone(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v srchost:/tmp/a /tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "srchost:/tmp/a", "/tmp/b"},
 		},
 		// Remote source, Remote destination (server side copy)
 		{
@@ -75,7 +75,7 @@ func TestRclone(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v srchost:/tmp/a desthost:/tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "srchost:/tmp/a", "desthost:/tmp/b"},
 		},
 		// exclude: list only
 		{
@@ -85,7 +85,7 @@ func TestRclone(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v --filter-from=[^ ]+ /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "--filter-from=[^ ]+", "/tmp/a", "/tmp/b"},
 		},
 		// include: list only
 		{
@@ -95,7 +95,7 @@ func TestRclone(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v --filter-from=[^ ]+ /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "--filter-from=[^ ]+", "/tmp/a", "/tmp/b"},
 		},
 		// include: & exclude: lists
 		{
@@ -106,7 +106,7 @@ func TestRclone(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rclone",
 			logfile:    "/dev/null",
-			expectCmds: []string{"rclone sync -v --filter-from=[^ ]+ /tmp/a /tmp/b"},
+			expectCmds: []string{"rclone", "sync", "-v", "--filter-from=[^ ]+", "/tmp/a", "/tmp/b"},
 		},
 		// Test that an empty source dir results in an error
 		{

@@ -13,10 +13,6 @@ import (
 	"github.com/marcopaganini/netbackup/config"
 )
 
-const (
-	rsyncTestCmd = "rsync -avAXH --delete --numeric-ids"
-)
-
 func TestRsync(t *testing.T) {
 	casetests := []struct {
 		name       string
@@ -48,7 +44,7 @@ func TestRsync(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " /tmp/a/ /tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "/tmp/a/", "/tmp/b"},
 		},
 		// Local source, remote destination.
 		{
@@ -58,7 +54,7 @@ func TestRsync(t *testing.T) {
 			destHost:   "desthost",
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " /tmp/a/ desthost:/tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "/tmp/a/", "desthost:/tmp/b"},
 		},
 		// Remote source, local destination.
 		{
@@ -68,7 +64,7 @@ func TestRsync(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " srchost:/tmp/a/ /tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "srchost:/tmp/a/", "/tmp/b"},
 		},
 		// Remote source, Remote destination (server side copy) not supported by rsync.
 		{
@@ -88,7 +84,7 @@ func TestRsync(t *testing.T) {
 			destDir:    "/tmp/b",
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " / /tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "/", "/tmp/b"},
 		},
 		// Exclude list only.
 		{
@@ -98,7 +94,7 @@ func TestRsync(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --filter=merge [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "--filter=merge [^ ]+", "--delete-excluded", "/tmp/a/", "/tmp/b"},
 		},
 		// Include list only.
 		{
@@ -108,7 +104,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --filter=merge [^ ]+ /tmp/a/ /tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "--filter=merge [^ ]+", "/tmp/a/", "/tmp/b"},
 		},
 		// Include & Exclude lists.
 		{
@@ -119,7 +115,7 @@ func TestRsync(t *testing.T) {
 			include:    []string{"x/foo", "x/bar"},
 			transport:  "rsync",
 			logfile:    "/dev/null",
-			expectCmds: []string{rsyncTestCmd + " --filter=merge [^ ]+ --delete-excluded /tmp/a/ /tmp/b"},
+			expectCmds: []string{"rsync", "-avAXH", "--delete", "--numeric-ids", "--filter=merge [^ ]+", "--delete-excluded", "/tmp/a/", "/tmp/b"},
 		},
 		// Test that an empty source dir results in error.
 		{

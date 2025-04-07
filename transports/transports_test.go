@@ -40,7 +40,7 @@ func (f *FakeExecute) Cmds() []string {
 }
 
 func (f *FakeExecute) Exec(a []string) error {
-	f.cmds = append(f.cmds, strings.Join(a, " "))
+	f.cmds = append(f.cmds, a...)
 	return nil
 }
 
@@ -68,13 +68,13 @@ func TestWriteList(t *testing.T) {
 }
 
 // reMatch returns true if all all strings in a slice match regular expressions in
-// another slice, 1:1.
+// another slice, 1:1. The regular expression will be anchored to the start and end of the line.
 func reMatch(re, s []string) (bool, error) {
 	if len(re) != len(s) {
 		return false, nil
 	}
 	for i, r := range re {
-		matched, err := regexp.MatchString(r, s[i])
+		matched, err := regexp.MatchString("^"+r+"$", s[i])
 		if err != nil {
 			return false, err
 		}

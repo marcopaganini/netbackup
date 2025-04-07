@@ -40,6 +40,7 @@ type Config struct {
 	LogDir             string   `toml:"log_dir"`
 	Logfile            string   `toml:"log_file"`
 	CustomBin          string   `toml:"custom_bin"`
+	CustomCmd          string   `toml:"custom_cmd"` // Only used by the custom transport.
 	PromTextFile       string   `toml:"prometheus_textfile"`
 	// LUKS specific options
 	LuksDestDev string `toml:"luks_dest_dev"`
@@ -87,16 +88,12 @@ func ParseConfig(r io.Reader) (*Config, error) {
 	// Base checks
 	case config.Name == "":
 		return nil, fmt.Errorf("name cannot be empty")
-	case config.SourceDir == "":
-		return nil, fmt.Errorf("source_dir cannot be empty")
 	case config.Transport == "":
 		return nil, fmt.Errorf("transport cannot be empty")
 	case config.Logfile != "" && config.LogDir != "":
 		return nil, fmt.Errorf("either log_dir or log_file can be set")
 	// Make sure destination combos are valid.
-	case (ndest + ndev) == 0:
-		return nil, fmt.Errorf("no destination set")
-	case (ndest + ndev) != 1:
+	case (ndest + ndev) > 1:
 		return nil, fmt.Errorf("only one destination (dest_dir, dest_dev, or luks_dest_dev) may be set")
 	case ndev != 0 && config.DestHost != "":
 		return nil, fmt.Errorf("cannot have dest_dev and dest_host set. Remote mounting not supported")
@@ -106,7 +103,7 @@ func ParseConfig(r io.Reader) (*Config, error) {
 	case config.SourceHost != "" && config.SourceIsMountPoint:
 		return nil, fmt.Errorf("cannot validate if source is a mountpoint with remote backups")
 	// Paths must be absolute if we're doing a local backup (no src or dst hosts.)
-	case config.SourceHost == "" && !strings.HasPrefix(config.SourceDir, "/"):
+	case config.SourceHost == "" && config.SourceDir != "" && !strings.HasPrefix(config.SourceDir, "/"):
 		return nil, fmt.Errorf("source_dir must be an absolute path")
 	case config.DestHost == "" && config.DestDir != "" && !strings.HasPrefix(config.DestDir, "/"):
 		return nil, fmt.Errorf("dest_dir must be an absolute path")

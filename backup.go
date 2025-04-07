@@ -191,6 +191,8 @@ func (b *Backup) Run(ctx context.Context) error {
 
 	// Create new transport based on config.Transport
 	switch b.config.Transport {
+	case "custom":
+		transp, err = transports.NewCustomTransport(b.config, nil, b.dryRun)
 	case "rclone":
 		transp, err = transports.NewRcloneTransport(b.config, nil, b.dryRun)
 	case "rdiff-backup":

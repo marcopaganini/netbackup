@@ -90,7 +90,6 @@ func (r *ResticTransport) Run(ctx context.Context) error {
 
 	// Generate restic command-line.
 	// restic -v -v [--exclude-file=<file>] [extra_args] --repo <destination_repo> backup <sourcedir>
-
 	resticBin := resticCmd
 	if r.config.CustomBin != "" {
 		resticBin = r.config.CustomBin

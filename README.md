@@ -25,7 +25,13 @@ You'll need the Go compiler and make installed to compile and install netbackup.
 
 ## A word about transports
 
-The concept of a "transport" is central to the program's operation. Netbackup itself is only a front-end, and uses common backup programs to copy and verify data. The following transports are available.
+The concept of a "transport" is central to the program's operation. Netbackup itself is only a front-end, and uses common backup programs to copy and verify data. The following transports are available:
+
+### custom
+
+Uses any command specified in `custom_cmd` in the config file. Netbackup will execute the program under the shell.
+This transport ignores all other options, but is useful when you want to execute a backup program not supported
+by netbackup but still have its output logged, prometheus integration, etc.
 
 ### rsync
 
