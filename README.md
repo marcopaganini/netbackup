@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Netbackup is a CLI front-end for different backup programs (rsync, rdiff-backup, rclone, and restic). It simplifies the task of making local and remote backups by standardizing multiple backup methods into a single program and configuration.
+Netbackup is a CLI front-end for different backup programs (rsync, rdiff-backup, rclone, restic, and borg). It simplifies the task of making local and remote backups by standardizing multiple backup methods into a single program and configuration.
 
 Netbackup eliminates the need for many different shell scripts with obscure options and ad-hoc commands, or long and unreadable invocations of rsync/rdiff-backup/rclone from your cron configuration. Most configuration options are read from config files, which could be kept under version control.  Netbackup also provides automatic logging of your backup results, with standardized log file names.
 
@@ -48,6 +48,28 @@ Uses [rclone](http://rclone.org/) to copy files. This is the transport of choice
 ### restic
 
 [Restic](https://restic.net) is a modern backup program that provides integration verification and encryption of your data. Works for local and remote backups.
+
+### borg
+
+[Borg](https://borgbackup.readthedocs.io/) (BorgBackup) is a deduplicating backup program that optionally compresses and encrypts the data. It works with the concept of a *repository* (the destination) holding many *archives* (individual backups). Borg is a good choice when you want deduplication and encryption at the destination, and works for local and remote backups.
+
+The destination (`dest_dir`) is the borg repository. It must be initialized separately before the first run (e.g. `borg init --encryption=repokey-blake2 <dest_dir>`); netbackup will not initialize the repository for you, to avoid accidental data loss. **When initializing the repository, create it from a keyfile** (so the passphrase is reproducible for unattended runs) — see below.
+
+Borg reads its passphrase from the `BORG_PASSPHRASE` environment variable. Netbackup sets it for you automatically from the `keyfile` configuration option (the same option used for LUKS encrypted devices), so you do **not** need a `pre_command` to export the passphrase. To keep the repository and the backup in sync, initialize the repository using that same keyfile, e.g.:
+
+```bash
+$ echo -n "MySecretPassword" >path/to/keyfile
+$ export BORG_PASSPHRASE=$(cat /path/to/keyfile)
+$ borg init --encryption=repokey-blake2 /dir/of/backups/borg
+```
+
+Please mind the `-n` option to echo above. Omitting it would cause the password to contain a newline character, which would make it hard to type it on the keyboard, as the trailing newline is automatically removed when typing.
+
+See the `examples/borg-example.conf` file for a complete example.
+
+Both `exclude` and `include` are supported for filtering (passed to borg as a combined `--patterns-from` file). Because borg ignores include patterns unless something is also excluded, when `include` is present netbackup automatically appends a catch-all exclusion, so `include` means "back up *only* these paths". If you instead want to include a few extra paths *in addition* to everything else, add an explicit catch-all `exclude` directive — see the note about `include`/`exclude` above. The `source_host` directive is not supported (borg always runs in push mode from the machine holding the source).
+
+**Patterns syntax:** the `include` and `exclude` values are not interpreted by netbackup — they are passed verbatim to borg and must follow borg's own pattern rules, which differ from rsync's (`***`) and rclone's (`**`). In particular, borg uses shell-style (fnmatch) patterns by default, supports `**` to match any number of path elements, and treats a leading `/` as anchored to the root of the archive. A leading `*` (e.g. `*.tmp`) matches at the current level only. See the [borg patterns documentation](https://borgbackup.readthedocs.io/en/stable/usage/help.html#patterns) (`borg help patterns`) for the full syntax, including the `R`/`-`/`0`/`pp` prefixes and fnmatch vs. path-based matching.
 
 ## Running netbackup
 
@@ -199,21 +221,21 @@ NOTE: Only extX filesystems are supported for now.
 
 #### Backing up to an encrypted and unmounted filesystem.
 
-It's always a good idea to encrypt your remote backups. Netbackup simplifies this task with the `luks_dest_dev` and `luks_keyfile` options:
+It's always a good idea to encrypt your remote backups. Netbackup simplifies this task with the `luks_dest_dev` and `keyfile` options:
 
 ```
 name = "encrypted-backup"
 transport = "rsync"
 source_dir = "/data"
 luks_dest_dev = "/dev/disk/by-uuid/e8607023-ef93-e7e5-914b-6af3e0430fb8"
-luks_keyfile = "/media/foo/keyfile"
+keyfile = "/media/foo/keyfile"
 fs_cleanup = "yes"
 ```
 
 Notes:
 
 * `luks_dest_dev` must point to a device you'd normally open with `cryptsetup luksOpen`. Netbackup will create a temporary "/dev/mapper" file and open this encrypted volume, pointing (internally) `backup_dev` to it.
-* The `luks_keyfile` points to a file containing the key to open the luks device. The entire file content is considered as the key! If using an ASCII password, keep in mind that *newline characters count as part of the key*! (tip: use `echo -n your_password >file` to create a file without a newline at the end.)
+* The `keyfile` points to a file containing the key to open the luks device. The entire file content is considered as the key! If using an ASCII password, keep in mind that *newline characters count as part of the key*! (tip: use `echo -n your_password >file` to create a file without a newline at the end.) The deprecated alias `luks_keyfile` is still accepted.
 * Netbackup will *not* create the encrypted volume; You must create it with cryptsetup and save the password into a file (I suggest a USB storage device for that.)
 
 ## Configuration Reference
@@ -228,7 +250,7 @@ This contains the name of the backup. Used to generate the full path of the log 
 
 ### transport (string, mandatory)
 
-The name of the transport (rsync, rclone, rdiff-backup, restic).
+The name of the transport (rsync, rclone, rdiff-backup, restic, borg).
 
 ### source_host (string)
 
@@ -248,9 +270,11 @@ Destination directory *or* destination device for the backup. Either must be pre
 
 Use `dest_dir` to specify a destination directory (must exist and be writable) or `dest_dev` to specify a destination device to use. If using a destination device, netbackup will automatically mount it as an extX filesystem and use it as the destination for the backup, unmounting it at the end.
 
-### luks_dest_dev and luks_keyfile (string)
+### keyfile and luks_dest_dev (string)
 
-If `lust_dest_dev` is present on the configuration file, netbackup will attempt to open the device using `cryptsetup luksOpen` and mount it on a temporary mountpoint before the backup. This option normally requires `luks_keyfile`, which points to a keyfile containing the key used to open the LUKS device.
+`keyfile` points to a file containing a key/passphrase. It is shared by the LUKS (`luks_dest_dev`) and borg transports: for LUKS it is the key used to open the encrypted device, and for borg it is the source of the repository passphrase (written to the `BORG_PASSPHRASE` environment variable). The deprecated alias `luks_keyfile` is still accepted.
+
+If `luks_dest_dev` is present on the configuration file, netbackup will attempt to open the device using `cryptsetup luksOpen` (using `keyfile`) and mount it on a temporary mountpoint before the backup. This option requires `keyfile`.
 
 ### source_is_mountpoint (boolean)
 
@@ -262,7 +286,7 @@ Run `fsck` on the filesystem before the backup, and set the fsck count back to z
 
 ### expire_days (integer)
 
-For transports that maintain history (rdiff-backup, restic) this specifies how far back (in days) we should keep history.
+For transports that maintain history (rdiff-backup, restic, borg) this specifies how far back (in days) we should keep history.
 
 ### extra_args (list of strings)
 

@@ -1,7 +1,7 @@
 // This file is part of netbackup, a frontend to simplify periodic backups.
 // For further information, check https://github.com/marcopaganini/netbackup
 //
-// (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015-2026 by Marco Paganini <paganini AT paganini DOT net>
 
 package transports
 
@@ -81,7 +81,8 @@ func (r *ResticTransport) Run(ctx context.Context) error {
 
 	// Create exclude file list, if needed.
 	if len(r.config.Exclude) != 0 {
-		excludeFile, err := writeList(ctx, "exclude", r.config.Exclude)
+		var err error
+		excludeFile, err = writeList(ctx, "exclude", r.config.Exclude)
 		if err != nil {
 			return err
 		}

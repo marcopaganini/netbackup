@@ -1,7 +1,7 @@
 // This file is part of netbackup, a frontend to simplify periodic backups.
 // For further information, check https://github.com/marcopaganini/netbackup
 //
-// (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015-2026 by Marco Paganini <paganini AT paganini DOT net>
 
 // main package.
 package main
@@ -72,8 +72,8 @@ func (b *Backup) openLuks(ctx context.Context) (string, error) {
 
 	// cryptsetup LuksOpen
 	cmd := []string{cryptSetupCmd}
-	if b.config.LuksKeyFile != "" {
-		cmd = append(cmd, "--key-file="+b.config.LuksKeyFile)
+	if b.config.Keyfile != "" {
+		cmd = append(cmd, "--key-file="+b.config.Keyfile)
 	}
 	cmd = append(cmd, "luksOpen")
 	cmd = append(cmd, b.config.LuksDestDev)
@@ -197,6 +197,8 @@ func (b *Backup) Run(ctx context.Context) error {
 		transp, err = transports.NewRcloneTransport(b.config, nil, b.dryRun)
 	case "rdiff-backup":
 		transp, err = transports.NewRdiffBackupTransport(b.config, nil, b.dryRun)
+	case "borg":
+		transp, err = transports.NewBorgTransport(b.config, nil, b.dryRun)
 	case "restic":
 		transp, err = transports.NewResticTransport(b.config, nil, b.dryRun)
 	case "rsync":

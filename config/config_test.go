@@ -1,7 +1,7 @@
 // This file is part of netbackup, a frontend to simplify periodic backups.
 // For further information, check https://github.com/marcopaganini/netbackup
 //
-// (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015-2026 by Marco Paganini <paganini AT paganini DOT net>
 
 package config
 
@@ -93,16 +93,28 @@ func TestDestOptions(t *testing.T) {
 		t.Fatalf("ParseConfig succeeded when key dest_dev and dest_host are set; want non-nil error")
 	}
 
-	// dest_dev and dest_luks_dev should result in error.
-	r = strings.NewReader(baseConfig + "dest_dev=\"/dev/foo\"\ndest_luks_dev=\"/luksdev\"\nluks_key_file=\"foo\"")
+	// dest_dev and luks_dest_dev should result in error.
+	r = strings.NewReader(baseConfig + "dest_dev=\"/dev/foo\"\nluks_dest_dev=\"/luksdev\"\nkeyfile=\"/key\"")
 	if _, err := ParseConfig(r); err == nil {
-		t.Fatalf("ParseConfig succeeded when key dest_dev and luks_dest_dev are set; want non-nil error")
+		t.Fatalf("ParseConfig succeeded when dest_dev and luks_dest_dev are set; want non-nil error")
 	}
 
-	// dest_luks_dev without a key file should result in error.
-	r = strings.NewReader(baseConfig + "dest_luks_dev=\"/luksdev\"\nluks_key_file=\"foo\"")
+	// luks_dest_dev without a key file should result in error.
+	r = strings.NewReader(baseConfig + "luks_dest_dev=\"/luksdev\"")
 	if _, err := ParseConfig(r); err == nil {
-		t.Fatalf("ParseConfig succeeded when key luks_dest_dev is set without a luks_kefile; want non-nil error")
+		t.Fatalf("ParseConfig succeeded when luks_dest_dev is set without a keyfile; want non-nil error")
+	}
+
+	// luks_dest_dev with the new "keyfile" option is accepted.
+	r = strings.NewReader(baseConfig + "luks_dest_dev=\"/luksdev\"\nkeyfile=\"/key\"")
+	if _, err := ParseConfig(r); err != nil {
+		t.Fatalf("ParseConfig failed with keyfile set: %v", err)
+	}
+
+	// luks_dest_dev with the deprecated "luks_keyfile" alias is still accepted.
+	r = strings.NewReader(baseConfig + "luks_dest_dev=\"/luksdev\"\nluks_keyfile=\"/key\"")
+	if _, err := ParseConfig(r); err != nil {
+		t.Fatalf("ParseConfig failed with deprecated luks_keyfile set: %v", err)
 	}
 
 	// filesystem_cleanup without a filesystem destination should result in error.

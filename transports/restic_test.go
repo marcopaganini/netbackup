@@ -1,7 +1,7 @@
 // This file is part of netbackup, a frontend to simplify periodic backups.
 // For further information, check https://github.com/marcopaganini/netbackup
 //
-// (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015-2026 by Marco Paganini <paganini AT paganini DOT net>
 
 package transports
 
@@ -89,7 +89,7 @@ func TestRestic(t *testing.T) {
 			exclude:    []string{"x/foo", "x/bar"},
 			transport:  "restic",
 			logfile:    "/dev/null",
-			expectCmds: []string{"restic", "-v", "-v", "--exclude-file=[^ ]*", "--repo", "/tmp/b", "backup", "/tmp/a"},
+			expectCmds: []string{"restic", "-v", "-v", "--exclude-file=[^ ]+", "--repo", "/tmp/b", "backup", "/tmp/a"},
 		},
 		// Test that an empty source dir results in error.
 		{

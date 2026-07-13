@@ -1,7 +1,7 @@
 // This file is part of netbackup, a frontend to simplify periodic backups.
 // For further information, check https://github.com/marcopaganini/netbackup
 //
-// (C) 2015-2024 by Marco Paganini <paganini AT paganini DOT net>
+// (C) 2015-2026 by Marco Paganini <paganini AT paganini DOT net>
 
 package config
 
@@ -42,9 +42,15 @@ type Config struct {
 	CustomBin          string   `toml:"custom_bin"`
 	CustomCmd          string   `toml:"custom_cmd"` // Only used by the custom transport.
 	PromTextFile       string   `toml:"prometheus_textfile"`
+	// Keyfile points to a file containing a key/passphrase. It is shared
+	// by the LUKS (luks_dest_dev) and borg transports. The deprecated
+	// "luks_keyfile" alias below is still accepted for backwards
+	// compatibility and is copied into Keyfile when Keyfile is empty.
+	Keyfile     string `toml:"keyfile"`
+	LuksKeyFile string `toml:"luks_keyfile"` // Deprecated alias for keyfile.
+
 	// LUKS specific options
 	LuksDestDev string `toml:"luks_dest_dev"`
-	LuksKeyFile string `toml:"luks_keyfile"`
 }
 
 // ParseConfig reads and parses TOML configuration from io.Reader and performs
@@ -68,6 +74,11 @@ func ParseConfig(r io.Reader) (*Config, error) {
 	// Set defaults
 	if config.Logfile == "" && config.LogDir == "" {
 		config.LogDir = defaultLogDir
+	}
+
+	// Support the deprecated luks_keyfile alias; keyfile takes precedence.
+	if config.Keyfile == "" && config.LuksKeyFile != "" {
+		config.Keyfile = config.LuksKeyFile
 	}
 
 	// Count the number of destinations set
@@ -112,8 +123,8 @@ func ParseConfig(r io.Reader) (*Config, error) {
 	case config.LuksDestDev != "" && !strings.HasPrefix(config.LuksDestDev, "/"):
 		return nil, fmt.Errorf("dest_luks_dev must be an absolute path")
 	// Specific checks.
-	case config.LuksDestDev != "" && config.LuksKeyFile == "":
-		return nil, fmt.Errorf("dest_luks_dev requires luks_key_file")
+	case config.LuksDestDev != "" && config.Keyfile == "":
+		return nil, fmt.Errorf("luks_dest_dev requires keyfile")
 	}
 
 	return config, nil
